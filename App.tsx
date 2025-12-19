@@ -215,7 +215,7 @@ const App = () => {
         model: "gemini-3-flash-preview",
         contents: `你是『周杰倫音樂寶藏地圖』的航行守護者。學生剛剛完成了《${songName}》的島嶼探索並在日誌中留下了感悟。學生筆記內容：『${noteText}』。請針對這段感悟給予一段 60 字以內的「靈感迴聲」。語氣要像是一位航行於音樂海洋的智者，用溫柔、具詩意且正向的方式回應學生的觀察。請讓學生感受到他的靈感與音樂產生了共鳴。`,
         config: {
-          thinkingConfig: { thinkingBudget: 1024 }, // 啟用思考配置，提供更具深度的回饋
+          thinkingConfig: { thinkingBudget: 1024 },
           maxOutputTokens: 1000,
         },
       });
@@ -247,13 +247,8 @@ const App = () => {
     params.append('timestamp', new Date().toISOString());
 
     try {
-        // Step 1: 送出至 Google Sheets
         await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-        
-        // Step 2: 生成 AI 回饋 (保持確認視窗開啟以顯示載入狀態)
         const aiResponse = await generateAIFeedback(selectedSong, currentProgress.note);
-        
-        // Step 3: 成功後的邏輯
         setShowConfirm(false);
         const updatedProgress = { ...songProgress, [selectedSong]: { ...currentProgress, isSubmitted: true, timer: 0 } };
         setSongProgress(updatedProgress);
@@ -491,23 +486,31 @@ const App = () => {
       )}
 
       {alertInfo && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#fef9e7] p-8 md:p-12 max-w-2xl w-full border-8 border-[#5d2e0a] parchment-shadow rounded-[3rem] my-auto">
-            <div className={`mb-6 flex justify-center ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>
-              {alertInfo.type === 'success' ? <CheckCircle size={80}/> : <AlertCircle size={80}/>}
-            </div>
-            <h3 className="text-4xl font-bold text-[#5d2e0a] mb-4 text-center font-map">{alertInfo.title}</h3>
-            <p className="text-2xl font-bold mb-8 text-center text-gray-800 font-kai">{alertInfo.message}</p>
-            
-            {alertInfo.aiFeedback && (
-              <div className="bg-white/60 border-2 border-amber-200 p-6 rounded-3xl mb-8 relative shadow-inner">
-                <Sparkles className="absolute -top-4 -left-4 text-amber-500 fill-amber-500" size={32} />
-                <h4 className="text-amber-800 font-bold text-xl mb-2 flex items-center gap-2 font-map"><ScrollText size={20}/> 航行日誌：靈感迴聲</h4>
-                <p className="text-xl md:text-2xl text-gray-700 italic font-kai leading-relaxed">「{alertInfo.aiFeedback}」</p>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 md:p-4 bg-black/95 backdrop-blur-md overflow-hidden">
+          <div className="bg-[#fef9e7] p-5 md:p-10 max-w-2xl w-full border-4 md:border-8 border-[#5d2e0a] parchment-shadow rounded-[2.5rem] md:rounded-[3rem] flex flex-col max-h-[95vh] overflow-hidden">
+            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1 md:pr-2 space-y-4 md:space-y-6">
+              <div className={`flex justify-center ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>
+                {alertInfo.type === 'success' ? <CheckCircle size={56} className="md:w-20 md:h-20" /> : <AlertCircle size={56} className="md:w-20 md:h-20" />}
               </div>
-            )}
+              <h3 className="text-2xl md:text-4xl font-bold text-[#5d2e0a] text-center font-map px-2">{alertInfo.title}</h3>
+              <p className="text-lg md:text-2xl font-bold text-center text-gray-800 font-kai leading-relaxed px-2">{alertInfo.message}</p>
+              
+              {alertInfo.aiFeedback && (
+                <div className="bg-white/70 border-2 border-amber-200 p-4 md:p-6 rounded-2xl md:rounded-3xl relative shadow-inner">
+                  <Sparkles className="absolute -top-3 -left-3 text-amber-500 fill-amber-500" size={24} />
+                  <h4 className="text-amber-800 font-bold text-base md:text-xl mb-2 flex items-center gap-2 font-map"><ScrollText size={18}/> 航行日誌：靈感迴聲</h4>
+                  <div className="max-h-[35vh] overflow-y-auto custom-scrollbar pr-1">
+                    <p className="text-base md:text-2xl text-gray-700 italic font-kai leading-relaxed whitespace-pre-line pb-4">
+                      「{alertInfo.aiFeedback}」
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-            <button onClick={() => setAlertInfo(null)} className="w-full py-5 bg-[#5d2e0a] text-white font-bold text-2xl rounded-2xl shadow-2xl tracking-widest font-kai">繼續航程</button>
+            <button onClick={() => setAlertInfo(null)} className="mt-4 md:mt-6 w-full py-4 md:py-5 bg-[#5d2e0a] text-white font-bold text-lg md:text-2xl rounded-2xl shadow-2xl tracking-widest font-kai hover:bg-black transition-colors shrink-0">
+              繼續航程
+            </button>
           </div>
         </div>
       )}

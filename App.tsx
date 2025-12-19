@@ -1,0 +1,521 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { X, CheckCircle, Music, ArrowLeft, Send, AlertCircle, Loader2, PenTool, PlayCircle, Lock, Timer, Compass, Map as MapIcon, Book, Info, Search, ExternalLink, Trophy, Unlock } from 'lucide-react';
+import { songData, islands } from './data';
+
+const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzm66QNefp7MaPBG3ApPiBP6MuYyc8nC7KKhLcAQCJHZFELB_qoWVvuaVVIpooCsQwTYg/exec";
+
+const songEmojis: Record<string, string> = {
+  '東風破': '🎻', '青花瓷': '🏺', '髮如雪': '❄️', '菊花台': '🌼', '煙花易冷': '🎆', '霍元甲': '🥋', '本草綱目': '🌿',
+  '雙截棍': '🥢', '以父之名': '⛪', '忍者': '🥷', '半獸人': '🐺', '紅模仿': '💃',
+  '夜曲': '🎹', '琴傷': '🎼', '逆鱗': '🐲', '迷迭香': '🌿', '土耳其冰淇淋': '🍦',
+  '止戰之殤': '🕊️', '梯田': '🌾', '懦夫': '🚫', '爸，我回來了': '🏠', '超人不會飛': '🦸',
+  '晴天': '☀️', '安靜': '🤫', '擱淺': '⚓', '不能說的秘密': '🤫', '說好的幸福呢': '💔', '告白氣球': '🎈',
+  '簡單愛': '❤️', '牛仔很忙': '🤠', '聽媽媽的話': '👩‍👦', '爺爺泡的茶': '🍵', '稻香': '🌾', '水手怕水': '⚓', '魔術先生': '🎩', '喬克叔叔': '🤡'
+};
+
+interface StructuredNoteInputProps {
+  template: string;
+  savedValues: Record<string, string>;
+  onUpdate: (newValues: Record<string, string>, fullText: string) => void;
+  disabled: boolean;
+  accentColor: string;
+}
+
+const StructuredNoteInput: React.FC<StructuredNoteInputProps> = ({ template, savedValues, onUpdate, disabled, accentColor }) => {
+  const parts = useMemo(() => template.split(/(【.*?】)/g), [template]);
+
+  const handleChange = (key: string, value: string) => {
+    const newValues = { ...savedValues, [key]: value };
+    let fullText = "";
+    parts.forEach((part, index) => {
+      if (part.startsWith('【') && part.endsWith('】')) {
+        const val = newValues[`field_${index}`] || "";
+        fullText += val ? ` ${val} ` : part; 
+      } else {
+        fullText += part;
+      }
+    });
+    onUpdate(newValues, fullText);
+  };
+
+  return (
+    <div className="text-gray-800 leading-8 text-xl md:text-2xl font-kai tracking-wide">
+      {parts.map((part, index) => {
+        if (part.startsWith('【') && part.endsWith('】')) {
+          const placeholder = part.slice(1, -1);
+          const fieldKey = `field_${index}`;
+          const estimatedWidth = Math.max(120, placeholder.length * 24);
+          return (
+            <span key={index} className="inline-block mx-1 align-middle" style={{ width: `${estimatedWidth}px`, maxWidth: '100%' }}>
+              <textarea
+                value={savedValues[fieldKey] || ''}
+                onChange={(e) => handleChange(fieldKey, e.target.value)}
+                disabled={disabled}
+                placeholder={placeholder}
+                rows={1}
+                className="w-full px-2 py-0 bg-white/10 border-b-2 font-bold focus:outline-none placeholder-gray-400 text-center resize-none h-[2.5rem] transition-all"
+                style={{ borderColor: accentColor, color: accentColor }}
+              />
+            </span>
+          );
+        } else {
+          return <span key={index}>{part}</span>;
+        }
+      })}
+    </div>
+  );
+};
+
+const App = () => {
+  const [studentInfo, setStudentInfo] = useState<{ className: string; seatNumber: string; name: string } | null>(null);
+  const [tempStudentInput, setTempStudentInput] = useState({ className: '', seatNumber: '', name: '' });
+  const [activeIsland, setActiveIsland] = useState<typeof islands[0] | null>(null);
+  const [selectedSong, setSelectedSong] = useState<string | null>(null);
+  const [completedIslands, setCompletedIslands] = useState<number[]>([]);
+  const [imageError, setImageError] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [alertInfo, setAlertInfo] = useState<{ title: string; message: string; type: 'success' | 'warning' } | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitWarning, setSubmitWarning] = useState<string | null>(null);
+  const warningRef = useRef<HTMLDivElement>(null);
+  
+  const [songProgress, setSongProgress] = useState<Record<string, { 
+    answer: string; 
+    note: string; 
+    isSubmitted: boolean;
+    isListeningFinished: boolean; // 當前解封狀態
+    noteInputValues: Record<string, string>;
+    timer: number; 
+  }>>({});
+
+  // 倒數計時核心邏輯
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSongProgress(prev => {
+        const next = { ...prev };
+        let hasChanged = false;
+        Object.keys(next).forEach(song => {
+          if (next[song].timer > 0 && !next[song].isSubmitted) {
+            const newTimer = next[song].timer - 1;
+            // 當計時器歸零時，正式標記該歌曲為「解封完成」
+            next[song] = { 
+              ...next[song], 
+              timer: newTimer,
+              isListeningFinished: newTimer === 0 ? true : next[song].isListeningFinished
+            };
+            hasChanged = true;
+          }
+        });
+        return hasChanged ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleLogin = () => {
+    if (!tempStudentInput.className.trim() || !tempStudentInput.seatNumber.trim() || !tempStudentInput.name.trim()) {
+      setValidationError("⚠️ 紀錄需完整：班級、座號與姓名");
+      return;
+    }
+    setStudentInfo(tempStudentInput);
+    setValidationError(null);
+  };
+
+  const handleIslandClick = (island: typeof islands[0]) => {
+    setActiveIsland(island);
+    setSelectedSong(null);
+    setSubmitWarning(null);
+  };
+
+  const handleSongClick = (songName: string) => {
+    if (songData[songName]) {
+      setSelectedSong(songName);
+      setValidationError(null);
+      setSubmitWarning(null);
+      if (!songProgress[songName]) {
+        setSongProgress(prev => ({
+          ...prev,
+          [songName]: { 
+            answer: '', 
+            note: songData[songName].responseFormat || '', 
+            noteInputValues: {}, 
+            isSubmitted: false, 
+            isListeningFinished: false,
+            timer: 0
+          }
+        }));
+      }
+    }
+  };
+
+  const handlePlayAndUnlock = () => {
+    if (selectedSong) {
+      const current = songProgress[selectedSong];
+      
+      // 如果已經解封過，直接開啟 URL 且不再計時
+      if (current.isListeningFinished) {
+        window.open(songData[selectedSong].url, '_blank');
+        return;
+      }
+
+      // 如果已經在倒數中，直接開啟 URL（防止重複開啟計時）
+      if (current.timer > 0) {
+        window.open(songData[selectedSong].url, '_blank');
+        return;
+      }
+
+      // 檢查是否已有「其他歌曲」正在倒數計時
+      const otherSongInTimer = Object.entries(songProgress).find(([name, prog]) => name !== selectedSong && prog.timer > 0);
+      if (otherSongInTimer) {
+        setAlertInfo({
+          title: "⚠️ 專注力檢測",
+          message: `已有其他樂章《${otherSongInTimer[0]}》正在封印中。\n請先專心完成該首歌曲的聆聽與探索，再進行下一首。`,
+          type: 'warning'
+        });
+        return;
+      }
+
+      // 開始倒數
+      window.open(songData[selectedSong].url, '_blank');
+      setSongProgress(prev => ({
+        ...prev,
+        [selectedSong]: { 
+          ...prev[selectedSong], 
+          timer: 150 
+        }
+      }));
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const closeModal = () => {
+    setActiveIsland(null);
+    setSelectedSong(null);
+    setSubmitWarning(null);
+  };
+
+  const validateNoteBlanks = (songName: string) => {
+    const data = songData[songName];
+    const progress = songProgress[songName];
+    
+    if (!data.responseFormat) {
+      return progress.note.trim().length > 0;
+    }
+    
+    const parts = data.responseFormat.split(/(【.*?】)/g);
+    const placeholdersCount = parts.filter(p => p.startsWith('【') && p.endsWith('】')).length;
+    
+    const filledValuesCount = Object.keys(progress.noteInputValues || {}).filter(key => {
+        const val = progress.noteInputValues[key];
+        return val && val.trim().length > 0;
+    }).length;
+    
+    return filledValuesCount >= placeholdersCount;
+  };
+
+  const handleRealSubmit = async () => {
+    if (!selectedSong || !activeIsland || !studentInfo) return;
+    setIsSubmitting(true);
+    const currentProgress = songProgress[selectedSong];
+    const correctAns = songData[selectedSong]?.correctAnswer;
+    const isAnswerCorrect = currentProgress.answer?.trim() === correctAns?.trim();
+    
+    const params = new URLSearchParams();
+    params.append('className', studentInfo.className);
+    params.append('seatNumber', studentInfo.seatNumber);
+    params.append('name', studentInfo.name);
+    params.append('island', activeIsland.name);
+    params.append('song', selectedSong);
+    params.append('answer', currentProgress.answer);
+    params.append('isCorrect', isAnswerCorrect ? "答對" : "答錯"); 
+    params.append('note', currentProgress.note);
+    params.append('timestamp', new Date().toISOString());
+
+    try {
+        await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
+        setShowConfirm(false);
+        const updatedProgress = { ...songProgress, [selectedSong]: { ...currentProgress, isSubmitted: true, timer: 0 } };
+        setSongProgress(updatedProgress);
+
+        const completedInThisIsland = activeIsland.songs.filter(s => updatedProgress[s]?.isSubmitted).length;
+        
+        if (completedInThisIsland >= 2 && !completedIslands.includes(activeIsland.id)) {
+            setCompletedIslands(prev => [...prev, activeIsland.id]);
+            setAlertInfo({ title: "🏆 島嶼制霸！", message: `征服了「${activeIsland.name}」！\n紀錄已封存至雲端。`, type: 'success' });
+        } else {
+            setAlertInfo({ title: isAnswerCorrect ? "🏅 完美的觀察！" : "🧗 再次探索吧！", message: isAnswerCorrect ? "鎖定線索，紀錄已封存。" : `真相其實是：「${correctAns}」。`, type: isAnswerCorrect ? 'success' : 'warning' });
+        }
+    } catch (e) {
+        setShowConfirm(false);
+        setAlertInfo({ title: "⚠️ 傳送失敗", message: "請檢查網路法陣。", type: 'warning' });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (submitWarning && warningRef.current) {
+        warningRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [submitWarning]);
+
+  const mapImageUrl = "https://drive.google.com/thumbnail?id=1N67L-xxy99CraTknq_tGbgg8WrGZZtAV&sz=w1920";
+
+  return (
+    <div className="relative w-full min-h-screen flex flex-col items-center py-4 md:py-10 font-map">
+      
+      {!studentInfo && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#fef9e7] shadow-2xl p-6 md:p-10 max-w-md w-full border-8 border-[#5d2e0a] rounded-3xl parchment-shadow">
+            <div className="text-center mb-6">
+              <Compass size={48} className="text-[#8b4513] mx-auto mb-4" />
+              <h2 className="text-4xl font-bold text-[#5d2e0a]">探險家航行日誌</h2>
+            </div>
+            <div className="space-y-4">
+              <input type="text" placeholder="船隊 (班級)" value={tempStudentInput.className} onChange={(e) => setTempStudentInput({...tempStudentInput, className: e.target.value})} className="w-full p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold focus:border-[#8b4513] outline-none" />
+              <div className="flex gap-4">
+                <input type="number" placeholder="座號" value={tempStudentInput.seatNumber} onChange={(e) => setTempStudentInput({...tempStudentInput, seatNumber: e.target.value})} className="w-1/3 p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
+                <input type="text" placeholder="探險員姓名" value={tempStudentInput.name} onChange={(e) => setTempStudentInput({...tempStudentInput, name: e.target.value})} className="flex-1 p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
+              </div>
+              {validationError && <p className="text-red-700 font-bold text-center">{validationError}</p>}
+              <button onClick={handleLogin} className="w-full bg-[#5d2e0a] text-[#fef9e7] font-bold py-4 text-2xl tracking-widest hover:bg-black transition-all rounded-2xl">解開地圖封印</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="map-outer-wrapper px-2 md:px-0">
+        <div className="map-container map-border bg-[#d0e6f0] parchment-shadow rounded-2xl md:rounded-3xl overflow-hidden">
+          {!imageError ? (
+            <img src={mapImageUrl} className="map-image select-none pointer-events-none" onError={() => setImageError(true)} />
+          ) : (
+            <div className="w-full h-96 flex items-center justify-center text-gray-400">地圖載入中...</div>
+          )}
+          {islands.map((island) => (
+            <div key={island.id} onClick={() => handleIslandClick(island)} className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10" style={{ top: island.top, left: island.left, width: island.width, height: island.height }}>
+              <div className="w-full h-full rounded-full transition-all hover:bg-white/10 flex items-center justify-center">
+                {completedIslands.includes(island.id) && <CheckCircle className="text-amber-500 w-2/3 h-2/3 drop-shadow-2xl animate-bounce" />}
+              </div>
+            </div>
+          ))}
+
+          {studentInfo && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-3 px-6 py-2 bg-[#fef9e7]/95 border-2 border-[#5d2e0a] shadow-2xl text-xs md:text-lg font-bold text-[#5d2e0a] whitespace-nowrap rounded-full">
+              <span className="flex items-center gap-1"><MapIcon size={20}/> 進度: {completedIslands.length}/6</span>
+              <span className="border-l-2 border-[#5d2e0a]/30 pl-3">🚢 {studentInfo.className} 隊 | #{studentInfo.seatNumber} {studentInfo.name}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {activeIsland && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#fef9e7] shadow-2xl w-full max-w-4xl border-4 md:border-8 border-[#5d2e0a] max-h-[96vh] flex flex-col parchment-shadow rounded-3xl md:rounded-[2.5rem] overflow-hidden">
+            <div className={`p-4 md:p-6 ${activeIsland.color} text-white flex justify-between items-center shrink-0 shadow-lg`}>
+              <div className="flex items-center gap-3">
+                {selectedSong ? <button onClick={() => setSelectedSong(null)} className="p-2 hover:bg-black/20 rounded-full transition-all"><ArrowLeft size={28}/></button> : <div className="p-1">{activeIsland.icon}</div>}
+                <h2 className="text-2xl md:text-4xl font-bold truncate tracking-widest">{selectedSong ? `《${selectedSong}》` : activeIsland.name}</h2>
+              </div>
+              <button onClick={closeModal} className="p-2 hover:bg-black/20 rounded-full transition-all"><X size={32}/></button>
+            </div>
+
+            <div className="p-5 md:p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+              {!selectedSong ? (
+                <>
+                  <div className="bg-white/40 p-6 rounded-[2rem] border-2 border-dashed border-[#5d2e0a]/20 shadow-inner flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                    <p className="text-lg md:text-2xl text-gray-800 font-bold leading-relaxed tracking-wide whitespace-pre-line flex-1 font-kai">「{activeIsland.content}」</p>
+                    <div className="shrink-0 px-6 py-3 bg-[#5d2e0a]/10 border-2 border-[#5d2e0a]/20 rounded-2xl text-center min-w-[140px] shadow-sm">
+                        <div className="text-sm font-bold text-[#5d2e0a]/60 uppercase tracking-widest mb-1 font-kai">探索進度</div>
+                        <div className="text-3xl font-black text-[#5d2e0a] flex items-center justify-center gap-2">
+                           <Trophy size={24} className={activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length >= 2 ? 'text-amber-500 animate-pulse' : 'text-gray-400'}/>
+                           {activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length} / 2
+                        </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-[#5d2e0a] font-bold text-2xl flex items-center gap-2 px-4"><Music size={28} className={activeIsland.textColor}/> 島嶼秘藏歌單</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {activeIsland.songs.map((song, idx) => {
+                        const isDone = songProgress[song]?.isSubmitted;
+                        const hasData = songData[song];
+                        const emoji = songEmojis[song] || '🎵';
+                        return (
+                          <button key={idx} onClick={() => handleSongClick(song)} disabled={!hasData}
+                            className={`px-4 py-4 rounded-2xl text-2xl font-bold border-2 transition-all flex items-center justify-between gap-3 text-left shadow-sm min-h-[4.5rem] ${hasData ? isDone ? 'bg-green-100 text-green-900 border-green-700/30' : 'bg-white/80 text-[#5d2e0a] border-[#5d2e0a]/10 hover:border-[#5d2e0a] hover:bg-white hover:shadow-lg active:scale-95' : 'bg-gray-100 text-gray-400 border-gray-200 opacity-50'}`}
+                          >
+                            <span className="flex items-center gap-3 overflow-hidden">
+                                <span className="text-2xl shrink-0">{emoji}</span>
+                                <span className="leading-tight">{song}</span>
+                            </span>
+                            {isDone && <CheckCircle size={18} className="shrink-0 text-green-700"/>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex justify-center pt-4">
+                    <button onClick={closeModal} className="bg-[#5d2e0a] text-[#fef9e7] px-12 py-4 rounded-2xl font-bold shadow-2xl hover:bg-black transition-all text-2xl tracking-[0.2em] flex items-center gap-3">
+                      <ArrowLeft size={28} /> 繼續觀察海圖
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="bg-white/50 p-6 rounded-[2.5rem] border-l-[12px] shadow-lg relative" style={{ borderColor: activeIsland.textColor.replace('text-', '') }}>
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className={`font-bold text-2xl md:text-3xl flex items-center gap-3 ${activeIsland.textColor} tracking-widest`}><Info size={32}/> 景點情報</h3>
+                      {songData[selectedSong].lyricUrl && (
+                        <a href={songData[selectedSong].lyricUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold transition-colors">
+                          <ExternalLink size={20}/> 歌詞連結
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-lg md:text-2xl text-gray-800 font-bold leading-relaxed font-kai">{songData[selectedSong].info}</p>
+                    
+                    <div className="mt-8 pt-6 border-t-2 border-[#5d2e0a]/10">
+                        <div className="space-y-4">
+                            <button onClick={handlePlayAndUnlock} className={`w-full flex items-center justify-center gap-4 text-white font-bold py-6 rounded-2xl text-2xl shadow-2xl hover:scale-[1.01] transition-all tracking-widest ${activeIsland.color}`}>
+                                {songProgress[selectedSong].isListeningFinished ? <CheckCircle size={36}/> : <PlayCircle size={36}/>} 
+                                {songProgress[selectedSong].isListeningFinished ? '重新聆聽樂章' : '啟動樂章'}
+                            </button>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8 pb-10">
+                    {/* 封印邏輯：如果計時器大於 0，隱藏下方區域 */}
+                    {(songProgress[selectedSong].timer > 0) ? (
+                      <div className="bg-[#5d2e0a]/5 border-4 border-dashed border-[#5d2e0a]/20 p-10 rounded-[3rem] text-center space-y-6 animate-pulse">
+                        <div className="relative inline-block">
+                           <Lock size={80} className="text-[#5d2e0a]/40 mx-auto" />
+                           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl font-black text-[#5d2e0a]">
+                              {formatTime(songProgress[selectedSong].timer)}
+                           </div>
+                        </div>
+                        <h4 className="text-3xl font-bold text-[#5d2e0a] font-map">樂章奏鳴中</h4>
+                        <p className="text-xl md:text-2xl text-[#5d2e0a]/60 font-kai">「請放下筆，專心聆聽這段旋律... <br/> 待封印解除，真相將會浮現。」</p>
+                        <div className="w-full max-w-md mx-auto h-3 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#5d2e0a] transition-all duration-1000" style={{ width: `${(150 - songProgress[selectedSong].timer) / 150 * 100}%` }}></div>
+                        </div>
+                      </div>
+                    ) : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted) ? (
+                      <div className="animate-in slide-in-from-bottom-10 duration-700 space-y-8">
+                        <div className="bg-white/40 p-6 border-l-8 border-[#5d2e0a] shadow-md rounded-r-[2rem]">
+                          <h3 className="text-[#5d2e0a] font-bold text-2xl md:text-3xl mb-4 flex items-center gap-3 font-map"><Search size={32} className={activeIsland.textColor}/> 線索搜查</h3>
+                          <p className="text-xl md:text-2xl text-gray-800 font-bold mb-6 font-kai">「{songData[selectedSong].quiz.question}」</p>
+                          <div className="grid gap-3">
+                            {songData[selectedSong].quiz.options.map((opt, i) => (
+                              <label key={i} className={`flex items-center gap-4 p-5 cursor-pointer border-2 rounded-2xl transition-all ${songProgress[selectedSong].answer === opt ? 'bg-white border-[#5d2e0a] shadow-xl scale-[1.01]' : 'bg-white/40 border-transparent hover:bg-white/70'}`}>
+                                <input type="radio" checked={songProgress[selectedSong].answer === opt} onChange={() => {
+                                    if(!songProgress[selectedSong].isSubmitted) {
+                                        setSongProgress(p => ({...p, [selectedSong]: {...p[selectedSong], answer: opt}}));
+                                        setSubmitWarning(null);
+                                    }
+                                }} disabled={songProgress[selectedSong].isSubmitted} className="w-8 h-8 text-[#5d2e0a]" />
+                                <span className="text-xl md:text-2xl font-bold font-kai">{opt}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="bg-white/40 p-6 border-r-8 border-[#5d2e0a] shadow-md rounded-l-[2rem]">
+                          <h3 className="text-[#5d2e0a] font-bold text-2xl md:text-3xl mb-4 flex items-center gap-3 font-map"><Book size={32} className={activeIsland.textColor}/> 航行筆記</h3>
+                          <p className="text-xl md:text-2xl text-gray-700 mb-6 font-bold font-kai">{songData[selectedSong].note}</p>
+                          {songData[selectedSong].responseFormat ? (
+                               <div className="bg-white/60 p-6 border-2 border-[#5d2e0a]/10 rounded-2xl shadow-inner">
+                                   <StructuredNoteInput template={songData[selectedSong].responseFormat || ''} savedValues={songProgress[selectedSong].noteInputValues || {}} onUpdate={(vals, full) => {
+                                       if(!songProgress[selectedSong].isSubmitted) {
+                                           setSongProgress(p => ({...p, [selectedSong]: {...p[selectedSong], noteInputValues: vals, note: full}}));
+                                           setSubmitWarning(null);
+                                       }
+                                   }} disabled={songProgress[selectedSong].isSubmitted} accentColor={activeIsland.textColor.replace('text-', '')} />
+                               </div>
+                          ) : (
+                               <textarea value={songProgress[selectedSong].note} onChange={(e) => {
+                                   if(!songProgress[selectedSong].isSubmitted) {
+                                       setSongProgress(p => ({...p, [selectedSong]: {...p[selectedSong], note: e.target.value}}));
+                                       setSubmitWarning(null);
+                                   }
+                               }} disabled={songProgress[selectedSong].isSubmitted} placeholder="在此揮毫下您的感悟..." className="w-full p-6 bg-transparent border-b-4 border-[#5d2e0a]/10 focus:border-[#5d2e0a] outline-none min-h-[140px] text-xl md:text-2xl font-bold resize-none font-kai" />
+                          )}
+                        </div>
+                        
+                        {!songProgress[selectedSong].isSubmitted ? (
+                          <div className="flex flex-col gap-4">
+                            {submitWarning && (
+                                <div ref={warningRef} className="bg-red-50 border-l-8 border-red-600 p-6 rounded-xl flex items-center gap-4 animate-bounce shadow-lg ring-2 ring-red-200">
+                                    <AlertCircle className="text-red-600 shrink-0" size={32}/>
+                                    <p className="text-red-800 font-bold text-xl md:text-2xl font-kai">{submitWarning}</p>
+                                </div>
+                            )}
+                            <button onClick={() => {
+                                if (!songProgress[selectedSong].answer) {
+                                    setSubmitWarning("🔍 尚未搜查到線索回答喔！");
+                                    return;
+                                }
+                                if (!validateNoteBlanks(selectedSong)) {
+                                    setSubmitWarning("✍️ 航行筆記尚有空格未完成填寫喔！");
+                                    return;
+                                }
+                                setSubmitWarning(null);
+                                setShowConfirm(true);
+                            }} disabled={isSubmitting} className="w-full bg-[#5d2e0a] text-white font-bold py-6 rounded-2xl text-3xl tracking-[0.3em] hover:bg-black transition-all shadow-2xl">送出探索紀錄</button>
+                          </div>
+                        ) : (
+                          <div className="w-full bg-green-800 text-white font-bold py-6 text-center text-2xl tracking-widest rounded-2xl shadow-xl font-kai"><CheckCircle className="inline mr-3" size={32}/> 此篇章已完美入誌</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-[#5d2e0a]/5 border-2 border-[#5d2e0a]/10 p-12 rounded-[2rem] text-center flex flex-col items-center gap-4">
+                        <Unlock size={48} className="text-[#5d2e0a]/20" />
+                        <p className="text-2xl font-bold text-[#5d2e0a]/40 font-kai">尚未啟動探索，樂章正在等待您的聆聽...</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-center mt-4">
+                    <button onClick={() => setSelectedSong(null)} className="text-[#5d2e0a]/60 hover:text-[#5d2e0a] underline font-bold text-2xl tracking-widest decoration-dotted underline-offset-8 transition-colors flex items-center gap-2 font-kai">
+                       <ArrowLeft size={24} /> 返回島嶼秘藏歌單
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+          <div className="bg-[#fef9e7] p-8 max-w-sm w-full border-8 border-[#5d2e0a] parchment-shadow text-center rounded-[2.5rem]">
+            <h3 className="text-3xl font-bold text-[#5d2e0a] mb-4 tracking-widest font-map">封存紀錄？</h3>
+            <p className="text-lg font-bold mb-6 text-gray-700 leading-relaxed font-kai">「提交後將永存日誌，不可再改。」</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={handleRealSubmit} className="w-full py-4 bg-green-800 text-white font-bold text-xl hover:bg-green-900 transition-all rounded-2xl shadow-xl font-kai">是的，封存！</button>
+              <button onClick={() => setShowConfirm(false)} className="py-2 text-gray-400 font-bold text-lg hover:text-gray-700 transition-colors font-kai">再思索片刻</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {alertInfo && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+          <div className="bg-[#fef9e7] p-12 max-w-lg w-full border-8 border-[#5d2e0a] parchment-shadow text-center rounded-[3rem]">
+            <div className={`mb-8 flex justify-center ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>{alertInfo.type === 'success' ? <CheckCircle size={100}/> : <AlertCircle size={100}/>}</div>
+            <h3 className="text-4xl font-bold text-[#5d2e0a] mb-6 tracking-widest font-map">{alertInfo.title}</h3>
+            <p className="text-2xl font-bold mb-10 whitespace-pre-line text-gray-800 leading-relaxed font-kai">{alertInfo.message}</p>
+            <button onClick={() => setAlertInfo(null)} className="w-full py-6 bg-[#5d2e0a] text-white font-bold text-3xl border-2 border-[#fef9e7]/10 rounded-2xl shadow-2xl tracking-widest font-kai">繼續航程</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;

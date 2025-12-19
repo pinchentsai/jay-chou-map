@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, CheckCircle, Music, ArrowLeft, Send, AlertCircle, Loader2, PenTool, PlayCircle, Lock, Timer, Compass, Map as MapIcon, Book, Info, Search, ExternalLink, Trophy, Unlock, Sparkles, ScrollText } from 'lucide-react';
 import { songData, islands } from './data';
@@ -80,7 +81,6 @@ const App = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [submitWarning, setSubmitWarning] = useState<string | null>(null);
-  const warningRef = useRef<HTMLDivElement>(null);
   
   const [songProgress, setSongProgress] = useState<Record<string, { 
     answer: string; 
@@ -179,7 +179,7 @@ const App = () => {
   const handlePlayAndUnlock = () => {
     if (selectedSong) {
       const current = songProgress[selectedSong];
-      if (current.isListeningFinished) {
+      if (current.isListeningFinished || current.isSubmitted) {
         window.open(songData[selectedSong].url, '_blank');
         return;
       }
@@ -191,7 +191,7 @@ const App = () => {
       if (otherSongInTimer) {
         setAlertInfo({
           title: "⚠️ 專注力檢測",
-          message: `已有其他樂章《${otherSongInTimer[0]}》正在封印中。\n請先專心完成該首歌曲的聆聽與探索，再進行下一首。`,
+          message: `已有其他樂章《${otherSongInTimer[0]}》正在解封中。\n請先專心完成該首歌曲的聆聽與探索，再進行下一首。`,
           type: 'warning'
         });
         return;
@@ -210,10 +210,14 @@ const App = () => {
   const generateAIFeedback = async (songName: string, noteText: string): Promise<string> => {
     try {
       setIsAiLoading(true);
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `你是『周杰倫音樂寶藏地圖』的航行守護者。學生剛剛完成了《${songName}》的島嶼探索並在日誌中留下了感悟。學生筆記內容：『${noteText}』。請針對這段感悟給予一段 60 字以內的「靈感迴聲」。語氣要像是一位航行於音樂海洋的智者，用溫柔、具詩意且正向的方式回應學生的觀察。請讓學生感受到他的靈感與音樂產生了共鳴。`,
+        config: {
+          thinkingConfig: { thinkingBudget: 1024 }, // 啟用思考配置，提供更具深度的回饋
+          maxOutputTokens: 1000,
+        },
       });
       return response.text || "你的觀察非常有深度，這段航行因為你的感悟而變得更有意義。";
     } catch (error) {
@@ -243,11 +247,14 @@ const App = () => {
     params.append('timestamp', new Date().toISOString());
 
     try {
+        // Step 1: 送出至 Google Sheets
         await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-        setShowConfirm(false);
         
+        // Step 2: 生成 AI 回饋 (保持確認視窗開啟以顯示載入狀態)
         const aiResponse = await generateAIFeedback(selectedSong, currentProgress.note);
         
+        // Step 3: 成功後的邏輯
+        setShowConfirm(false);
         const updatedProgress = { ...songProgress, [selectedSong]: { ...currentProgress, isSubmitted: true, timer: 0 } };
         setSongProgress(updatedProgress);
 
@@ -384,8 +391,8 @@ const App = () => {
                     <p className="text-lg md:text-2xl text-gray-800 font-bold leading-relaxed font-kai">{songData[selectedSong].info}</p>
                     <div className="mt-8 pt-6 border-t-2 border-[#5d2e0a]/10">
                         <button onClick={handlePlayAndUnlock} className={`w-full flex items-center justify-center gap-4 text-white font-bold py-6 rounded-2xl text-2xl shadow-2xl hover:scale-[1.01] transition-all tracking-widest ${activeIsland.color}`}>
-                            {songProgress[selectedSong].timer > 0 ? <Loader2 className="animate-spin" size={36}/> : (songProgress[selectedSong].isListeningFinished ? <CheckCircle size={36}/> : <PlayCircle size={36}/>)} 
-                            {songProgress[selectedSong].timer > 0 ? `奏鳴中 ${formatTime(songProgress[selectedSong].timer)}` : (songProgress[selectedSong].isListeningFinished ? '重新聆聽樂章' : '啟動樂章')}
+                            {songProgress[selectedSong].timer > 0 ? <Loader2 className="animate-spin" size={36}/> : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted ? <CheckCircle size={36}/> : <PlayCircle size={36}/>)} 
+                            {songProgress[selectedSong].timer > 0 ? `奏鳴中 ${formatTime(songProgress[selectedSong].timer)}` : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted ? '重新聆聽樂章' : '啟動樂章')}
                         </button>
                     </div>
                   </div>
@@ -394,7 +401,7 @@ const App = () => {
                     {songProgress[selectedSong].timer > 0 ? (
                       <div className="bg-[#5d2e0a]/5 border-4 border-dashed border-[#5d2e0a]/20 p-10 rounded-[3rem] text-center space-y-6 animate-pulse">
                         <Lock size={80} className="text-[#5d2e0a]/40 mx-auto" />
-                        <h4 className="text-3xl font-bold text-[#5d2e0a] font-map">樂章奏鳴中...</h4>
+                        <h4 className="text-3xl font-bold text-[#5d2e0a] font-map">樂章封印中</h4>
                         <p className="text-xl md:text-2xl text-[#5d2e0a]/60 font-kai">「請放下筆，專心聆聽這段旋律...」</p>
                       </div>
                     ) : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted) ? (
@@ -467,17 +474,17 @@ const App = () => {
           <div className="bg-[#fef9e7] p-8 max-w-sm w-full border-8 border-[#5d2e0a] parchment-shadow text-center rounded-[2.5rem]">
             <h3 className="text-3xl font-bold text-[#5d2e0a] mb-4 font-map">封存紀錄？</h3>
             <p className="text-lg font-bold mb-6 text-gray-700 font-kai">「提交後將不可再改。」</p>
-            {isAiLoading && (
+            {(isSubmitting || isAiLoading) && (
               <div className="mb-4 flex flex-col items-center gap-2">
                 <Loader2 className="animate-spin text-amber-600" size={32} />
                 <p className="text-amber-700 font-bold font-kai animate-pulse">航行守護者正在細品您的筆記...</p>
               </div>
             )}
             <div className="flex flex-col gap-3">
-              <button onClick={handleRealSubmit} disabled={isAiLoading} className="w-full py-4 bg-green-800 text-white font-bold text-xl rounded-2xl shadow-xl flex items-center justify-center gap-2">
-                {isAiLoading ? "思考中..." : "是的，封存！"}
+              <button onClick={handleRealSubmit} disabled={isSubmitting || isAiLoading} className="w-full py-4 bg-green-800 text-white font-bold text-xl rounded-2xl shadow-xl flex items-center justify-center gap-2 disabled:opacity-50">
+                {(isSubmitting || isAiLoading) ? "處理中..." : "是的，封存！"}
               </button>
-              <button onClick={() => setShowConfirm(false)} className="py-2 text-gray-400 font-bold text-lg font-kai">再思索片刻</button>
+              <button onClick={() => setShowConfirm(false)} disabled={isSubmitting || isAiLoading} className="py-2 text-gray-400 font-bold text-lg font-kai disabled:opacity-30">再思索片刻</button>
             </div>
           </div>
         </div>

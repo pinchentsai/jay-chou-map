@@ -213,13 +213,23 @@ const App = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `你是『周杰倫音樂寶藏地圖』的航行守護者。學生剛剛完成了《${songName}》的島嶼探索並在日誌中留下了感悟。學生筆記內容：『${noteText}』。請針對這段感悟給予一段 60 字以內的「靈感迴聲」。語氣要像是一位航行於音樂海洋的智者，用溫柔、具詩意且正向的方式回應學生的觀察。請讓學生感受到他的靈感與音樂產生了共鳴。`,
+        contents: `你是『周杰倫音樂寶藏地圖』的航行守護者。學生剛剛完成了《${songName}》的島嶼探索並在日誌中留下了感悟。學生筆記內容：『${noteText}』。請針對這段感悟給予一段 60 字以內的「靈感迴聲」。語氣要像是一位航行於音樂海洋的智者，用溫柔、具詩意且正向的方式回應。
+        
+        【極重要規則】：
+        1. 輸出的最後一個字必須是「句號(。)」。
+        2. 嚴格禁止使用「逗號(，)」或「驚嘆號(!)」作為結尾，請確保語句完整結束。
+        3. 不要使用表情符號。
+        4. 回應內容必須讓學生感到被鼓勵。`,
         config: {
           thinkingConfig: { thinkingBudget: 1024 },
-          maxOutputTokens: 1000,
+          maxOutputTokens: 800,
         },
       });
-      return response.text || "你的觀察非常有深度，這段航行因為你的感悟而變得更有意義。";
+      let text = response.text?.trim() || "";
+      if (text && !text.endsWith('。')) {
+        text = text.replace(/[，,！!？?]$/, '') + '。';
+      }
+      return text || "你的觀察非常有深度，這段航行因為你的感悟而變得更有意義。";
     } catch (error) {
       console.error("AI Error:", error);
       return "你的感悟已成功記錄在日誌中。繼續探索下一座島嶼吧！";
@@ -285,19 +295,37 @@ const App = () => {
     <div className="relative w-full min-h-screen flex flex-col items-center py-4 md:py-10 font-map">
       {!studentInfo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#fef9e7] shadow-2xl p-6 md:p-10 max-w-md w-full border-8 border-[#5d2e0a] rounded-3xl parchment-shadow">
+          <div className="bg-[#fef9e7] shadow-2xl p-6 md:p-10 max-w-sm md:max-w-md w-full border-8 border-[#5d2e0a] rounded-3xl parchment-shadow overflow-hidden mx-auto">
             <div className="text-center mb-6">
               <Compass size={48} className="text-[#8b4513] mx-auto mb-4" />
-              <h2 className="text-4xl font-bold text-[#5d2e0a]">探險家航行日誌</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#5d2e0a]">探險家航行日誌</h2>
             </div>
-            <div className="space-y-4">
-              <input type="text" placeholder="船隊 (班級)" value={tempStudentInput.className} onChange={(e) => setTempStudentInput({...tempStudentInput, className: e.target.value})} className="w-full p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold focus:border-[#8b4513] outline-none" />
-              <div className="flex gap-4">
-                <input type="number" placeholder="座號" value={tempStudentInput.seatNumber} onChange={(e) => setTempStudentInput({...tempStudentInput, seatNumber: e.target.value})} className="w-1/3 p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
-                <input type="text" placeholder="探險員姓名" value={tempStudentInput.name} onChange={(e) => setTempStudentInput({...tempStudentInput, name: e.target.value})} className="flex-1 p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
+            <div className="space-y-6">
+              <input 
+                type="text" 
+                placeholder="船隊 (班級)" 
+                value={tempStudentInput.className} 
+                onChange={(e) => setTempStudentInput({...tempStudentInput, className: e.target.value})} 
+                className="w-full p-4 border-b-4 border-[#8b4513]/40 bg-transparent text-lg md:text-2xl font-bold focus:border-[#8b4513] outline-none transition-all placeholder:text-[#8b4513]/40" 
+              />
+              <div className="flex gap-4 w-full">
+                <input 
+                  type="number" 
+                  placeholder="座號" 
+                  value={tempStudentInput.seatNumber} 
+                  onChange={(e) => setTempStudentInput({...tempStudentInput, seatNumber: e.target.value})} 
+                  className="w-20 md:w-32 p-4 border-b-4 border-[#8b4513]/40 bg-transparent text-lg md:text-2xl font-bold focus:border-[#8b4513] outline-none transition-all placeholder:text-[#8b4513]/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none shrink-0" 
+                />
+                <input 
+                  type="text" 
+                  placeholder="探險員姓名" 
+                  value={tempStudentInput.name} 
+                  onChange={(e) => setTempStudentInput({...tempStudentInput, name: e.target.value})} 
+                  className="min-w-0 flex-1 p-4 border-b-4 border-[#8b4513]/40 bg-transparent text-lg md:text-2xl font-bold focus:border-[#8b4513] outline-none transition-all placeholder:text-[#8b4513]/40" 
+                />
               </div>
-              {validationError && <p className="text-red-700 font-bold text-center">{validationError}</p>}
-              <button onClick={handleLogin} className="w-full bg-[#5d2e0a] text-[#fef9e7] font-bold py-4 text-2xl tracking-widest hover:bg-black transition-all rounded-2xl">解開地圖封印</button>
+              {validationError && <p className="text-red-700 font-bold text-center animate-pulse text-sm md:text-base">{validationError}</p>}
+              <button onClick={handleLogin} className="mt-4 w-full bg-[#5d2e0a] text-[#fef9e7] font-bold py-4 md:py-5 text-xl md:text-2xl tracking-widest hover:bg-black active:scale-95 transition-all rounded-2xl shadow-lg">解開地圖封印</button>
             </div>
           </div>
         </div>
@@ -337,13 +365,13 @@ const App = () => {
               <button onClick={closeModal} className="p-2 hover:bg-black/20 rounded-full transition-all"><X size={32}/></button>
             </div>
 
-            <div className="p-5 md:p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+            <div className="p-5 md:p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1 pb-16">
               {!selectedSong ? (
                 <>
                   <div className="bg-white/40 p-6 rounded-[2rem] border-2 border-dashed border-[#5d2e0a]/20 shadow-inner flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                     <p className="text-lg md:text-2xl text-gray-800 font-bold leading-relaxed tracking-wide whitespace-pre-line flex-1 font-kai">「{activeIsland.content}」</p>
-                    <div className="shrink-0 px-6 py-3 bg-[#5d2e0a]/10 border-2 border-[#5d2e0a]/20 rounded-2xl text-center min-w-[140px] shadow-sm">
-                        <div className="text-sm font-bold text-[#5d2e0a]/60 uppercase tracking-widest mb-1 font-kai">探索進度</div>
+                    <div className="shrink-0 px-6 py-3 bg-[#5d2e0a]/10 border-2 border-[#5d2e0a]/20 rounded-2xl text-center min-w-[150px] shadow-sm">
+                        <div className="text-xl font-bold text-[#5d2e0a]/60 uppercase tracking-widest mb-1 font-kai">探索進度</div>
                         <div className="text-3xl font-black text-[#5d2e0a] flex items-center justify-center gap-2">
                            <Trophy size={24} className={activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length >= 2 ? 'text-amber-500 animate-pulse' : 'text-gray-400'}/>
                            {activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length} / 2
@@ -488,19 +516,19 @@ const App = () => {
       {alertInfo && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 md:p-4 bg-black/95 backdrop-blur-md overflow-hidden">
           <div className="bg-[#fef9e7] p-5 md:p-10 max-w-2xl w-full border-4 md:border-8 border-[#5d2e0a] parchment-shadow rounded-[2.5rem] md:rounded-[3rem] flex flex-col max-h-[95vh] overflow-hidden">
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1 md:pr-2 space-y-4 md:space-y-6">
-              <div className={`flex justify-center ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>
+            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1 md:pr-2 space-y-6 md:space-y-8 pb-12">
+              <div className={`flex justify-center pt-4 ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>
                 {alertInfo.type === 'success' ? <CheckCircle size={56} className="md:w-20 md:h-20" /> : <AlertCircle size={56} className="md:w-20 md:h-20" />}
               </div>
               <h3 className="text-2xl md:text-4xl font-bold text-[#5d2e0a] text-center font-map px-2">{alertInfo.title}</h3>
               <p className="text-lg md:text-2xl font-bold text-center text-gray-800 font-kai leading-relaxed px-2">{alertInfo.message}</p>
               
               {alertInfo.aiFeedback && (
-                <div className="bg-white/70 border-2 border-amber-200 p-4 md:p-6 rounded-2xl md:rounded-3xl relative shadow-inner">
-                  <Sparkles className="absolute -top-3 -left-3 text-amber-500 fill-amber-500" size={24} />
-                  <h4 className="text-amber-800 font-bold text-base md:text-xl mb-2 flex items-center gap-2 font-map"><ScrollText size={18}/> 航行日誌：靈感迴聲</h4>
-                  <div className="max-h-[35vh] overflow-y-auto custom-scrollbar pr-1">
-                    <p className="text-base md:text-2xl text-gray-700 italic font-kai leading-relaxed whitespace-pre-line pb-4">
+                <div className="bg-white/70 border-2 border-amber-200 p-5 md:p-8 rounded-2xl md:rounded-3xl relative shadow-inner min-h-[150px]">
+                  <Sparkles className="absolute -top-3 -left-3 text-amber-500 fill-amber-500" size={28} />
+                  <h4 className="text-amber-800 font-bold text-lg md:text-2xl mb-4 flex items-center gap-2 font-map"><ScrollText size={22}/> 航行日誌：靈感迴聲</h4>
+                  <div className="w-full">
+                    <p className="text-xl md:text-2xl text-gray-700 font-kai leading-relaxed md:leading-loose whitespace-pre-line pr-6 pb-4">
                       「{alertInfo.aiFeedback}」
                     </p>
                   </div>
@@ -508,9 +536,11 @@ const App = () => {
               )}
             </div>
 
-            <button onClick={() => setAlertInfo(null)} className="mt-4 md:mt-6 w-full py-4 md:py-5 bg-[#5d2e0a] text-white font-bold text-lg md:text-2xl rounded-2xl shadow-2xl tracking-widest font-kai hover:bg-black transition-colors shrink-0">
-              繼續航程
-            </button>
+            <div className="pt-2 md:pt-4">
+              <button onClick={() => setAlertInfo(null)} className="w-full py-4 md:py-6 bg-[#5d2e0a] text-white font-bold text-lg md:text-2xl rounded-2xl shadow-2xl tracking-widest font-kai hover:bg-black active:scale-[0.98] transition-all shrink-0">
+                繼續航程
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -229,7 +229,7 @@ const App = () => {
       });
       let text = response.text?.trim() || "";
       
-      // 強制結尾清理邏輯
+      // 強製結尾清理邏輯：移除末尾非句號的所有標點並強行補上句號
       if (text) {
         text = text.replace(/[，,！!？?\"」\)\s]+$/, '');
         if (!text.endsWith('。')) {

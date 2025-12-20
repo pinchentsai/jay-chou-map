@@ -217,19 +217,19 @@ const App = () => {
         
         任務：請針對這段感悟給予一段 60 字以內的「靈感迴聲」。語氣要像是一位航行於音樂海洋的智者，用溫柔、具詩意且正向的方式回應。
         
-        【重要規範】：
+        【極重要規範】：
         1. 輸出的最後一個字必須是「句號(。)」。
-        2. 嚴格禁止在句號後面出現引號、括號或其他標點符號。
+        2. 嚴格禁止在句號後面出現引號、括號或其他任何標點符號。
         3. 如果句子沒說完，請強制在結尾處補上句號使其完整。
         4. 不要使用表情符號。`,
         config: {
           thinkingConfig: { thinkingBudget: 0 },
-          maxOutputTokens: 600,
+          maxOutputTokens: 500,
         },
       });
       let text = response.text?.trim() || "";
       
-      // 強制結尾處理：移除末尾任何非句號的標點，並補上句號
+      // 強制結尾清理邏輯
       if (text) {
         text = text.replace(/[，,！!？?\"」\)\s]+$/, '');
         if (!text.endsWith('。')) {
@@ -355,7 +355,7 @@ const App = () => {
               <button onClick={closeModal} className="p-2 hover:bg-black/20 rounded-full transition-all"><X size={32}/></button>
             </div>
 
-            <div className="p-5 md:p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+            <div className="p-5 md:p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1 pb-16">
               {!selectedSong ? (
                 <>
                   <div className="bg-white/40 p-6 rounded-[2rem] border-2 border-dashed border-[#5d2e0a]/20 shadow-inner flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
@@ -506,8 +506,8 @@ const App = () => {
       {alertInfo && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 md:p-4 bg-black/95 backdrop-blur-md overflow-hidden">
           <div className="bg-[#fef9e7] p-5 md:p-10 max-w-2xl w-full border-4 md:border-8 border-[#5d2e0a] parchment-shadow rounded-[2.5rem] md:rounded-[3rem] flex flex-col max-h-[95vh] overflow-hidden">
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1 md:pr-2 space-y-4 md:space-y-6 pb-12">
-              <div className={`flex justify-center ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>
+            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1 md:pr-2 space-y-6 md:space-y-8 pb-16">
+              <div className={`flex justify-center pt-4 ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>
                 {alertInfo.type === 'success' ? <CheckCircle size={56} className="md:w-20 md:h-20" /> : <AlertCircle size={56} className="md:w-20 md:h-20" />}
               </div>
               <h3 className="text-2xl md:text-4xl font-bold text-[#5d2e0a] text-center font-map px-2">{alertInfo.title}</h3>
@@ -516,7 +516,7 @@ const App = () => {
               {alertInfo.aiFeedback && (
                 <div className="bg-white/70 border-2 border-amber-200 p-6 md:p-10 rounded-2xl md:rounded-3xl relative shadow-inner min-h-[180px] overflow-visible">
                   <Sparkles className="absolute -top-3 -left-3 text-amber-500 fill-amber-500" size={28} />
-                  <h4 className="text-amber-800 font-bold text-base md:text-xl mb-4 flex items-center gap-2 font-map"><ScrollText size={18}/> 航行日誌：靈感迴聲</h4>
+                  <h4 className="text-amber-800 font-bold text-lg md:text-2xl mb-5 flex items-center gap-2 font-map"><ScrollText size={22}/> 航行日誌：靈感迴聲</h4>
                   <div className="w-full">
                     <p className="text-xl md:text-3xl text-gray-700 font-kai leading-relaxed md:leading-loose whitespace-pre-line pr-10 pb-12 break-words">
                       「{alertInfo.aiFeedback}」
@@ -526,9 +526,11 @@ const App = () => {
               )}
             </div>
 
-            <button onClick={() => setAlertInfo(null)} className="mt-4 md:mt-6 w-full py-4 md:py-5 bg-[#5d2e0a] text-white font-bold text-lg md:text-2xl rounded-2xl shadow-2xl tracking-widest font-kai hover:bg-black transition-colors shrink-0">
-              繼續航程
-            </button>
+            <div className="pt-2 md:pt-4">
+              <button onClick={() => setAlertInfo(null)} className="w-full py-4 md:py-6 bg-[#5d2e0a] text-white font-bold text-lg md:text-2xl rounded-2xl shadow-2xl tracking-widest font-kai hover:bg-black active:scale-[0.98] transition-all shrink-0">
+                繼續航程
+              </button>
+            </div>
           </div>
         </div>
       )}

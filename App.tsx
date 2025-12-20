@@ -219,15 +219,20 @@ const App = () => {
         1. 輸出的最後一個字必須是「句號(。)」。
         2. 嚴格禁止使用「逗號(，)」或「驚嘆號(!)」作為結尾，請確保語句完整結束。
         3. 不要使用表情符號。
-        4. 回應內容必須讓學生感到被鼓勵。`,
+        4. 回應內容必須讓學生感到被鼓勵。
+        5. 絕對不能在句號後面再加任何字元，包括引號或括號。`,
         config: {
           thinkingConfig: { thinkingBudget: 1024 },
           maxOutputTokens: 800,
         },
       });
       let text = response.text?.trim() || "";
-      if (text && !text.endsWith('。')) {
-        text = text.replace(/[，,！!？?]$/, '') + '。';
+      // 強制清理結尾
+      if (text) {
+        text = text.replace(/[，,！!？?\"」\)\s]+$/, '');
+        if (!text.endsWith('。')) {
+          text += '。';
+        }
       }
       return text || "你的觀察非常有深度，這段航行因為你的感悟而變得更有意義。";
     } catch (error) {
@@ -524,11 +529,11 @@ const App = () => {
               <p className="text-lg md:text-2xl font-bold text-center text-gray-800 font-kai leading-relaxed px-2">{alertInfo.message}</p>
               
               {alertInfo.aiFeedback && (
-                <div className="bg-white/70 border-2 border-amber-200 p-5 md:p-8 rounded-2xl md:rounded-3xl relative shadow-inner min-h-[150px]">
+                <div className="bg-white/70 border-2 border-amber-200 p-6 md:p-10 rounded-2xl md:rounded-3xl relative shadow-inner min-h-[180px]">
                   <Sparkles className="absolute -top-3 -left-3 text-amber-500 fill-amber-500" size={28} />
-                  <h4 className="text-amber-800 font-bold text-lg md:text-2xl mb-4 flex items-center gap-2 font-map"><ScrollText size={22}/> 航行日誌：靈感迴聲</h4>
+                  <h4 className="text-amber-800 font-bold text-lg md:text-2xl mb-5 flex items-center gap-2 font-map"><ScrollText size={22}/> 航行日誌：靈感迴聲</h4>
                   <div className="w-full">
-                    <p className="text-xl md:text-2xl text-gray-700 font-kai leading-relaxed md:leading-loose whitespace-pre-line pr-6 pb-4">
+                    <p className="text-xl md:text-2xl text-gray-700 font-kai leading-relaxed md:leading-loose whitespace-pre-line pr-10 pb-10">
                       「{alertInfo.aiFeedback}」
                     </p>
                   </div>

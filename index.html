@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jay Chou Music Treasure Map</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 載入專門支援繁體中文的手寫質感字體：霞鶩文楷與 Klee One -->
+    <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@300;400;700&family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
     <style>
       :root {
         --parchment: #f4e4bc;
@@ -14,21 +15,29 @@
       }
       * {
         font-style: normal !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
       body {
         background-color: var(--parchment);
         background-image: url("https://www.transparenttextures.com/patterns/papyros.png");
-        font-family: 'Ma Shan Zheng', 'Noto Serif TC', serif;
+        /* 預設全面使用霞鶩文楷 */
+        font-family: 'LXGW WenKai TC', 'Klee One', "標楷體", "DFKai-SB", sans-serif;
         color: var(--ink);
         overflow-x: hidden;
         margin: 0;
         padding: 0;
       }
+      /* 標題類：使用粗體文楷，增加字距提升地圖質感 */
       .font-map {
-        font-family: 'Ma Shan Zheng', cursive;
+        font-family: 'LXGW WenKai TC', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.1em;
       }
+      /* 內文類：手寫楷體感 */
       .font-kai {
-        font-family: "標楷體", "DFKai-SB", "BiauKai", "Apple LiSung", serif;
+        font-family: 'LXGW WenKai TC', 'Klee One', sans-serif;
+        font-weight: 400;
       }
       .parchment-shadow {
         box-shadow: 
@@ -80,14 +89,14 @@
     "react/": "https://esm.sh/react@^19.2.3/",
     "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
     "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
-    <!-- 這裡改為 Vite 標準引用方式 -->
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

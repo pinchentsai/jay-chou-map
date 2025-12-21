@@ -25,12 +25,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: 'npm'
 
       - name: 安裝依賴套件 (Install)
-        run: npm ci
-        # 如果 npm ci 失敗，機器人會報錯，這通常是因為沒有上傳 package-lock.json
-        # 如果您只有 package.json，請改用: npm install
+        run: npm install
 
       - name: 執行建置 (Build)
         run: npm run build

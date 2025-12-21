@@ -1,0 +1,52 @@
+name: Deploy Vite App to GitHub Pages
+
+on:
+  push:
+    branches: ["main"] # 如果您的分支叫 master，請把這裡改成 master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: 安裝依賴套件 (Install)
+        run: npm ci
+        # 如果 npm ci 失敗，機器人會報錯，這通常是因為沒有上傳 package-lock.json
+        # 如果您只有 package.json，請改用: npm install
+
+      - name: 執行建置 (Build)
+        run: npm run build
+
+      - name: 上傳建置結果
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist # Vite 預設會把煮好的飯放在 dist 資料夾
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 發布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -41,7 +41,7 @@ const StructuredNoteInput: React.FC<StructuredNoteInputProps> = ({ template, sav
   };
 
   return (
-    <div className="text-gray-800 leading-8 text-xl md:text-2xl font-kai tracking-wide">
+    <div className="text-gray-800 leading-8 text-xl md:text-2xl font-lxgw-reg tracking-wide">
       {parts.map((part, index) => {
         if (part.startsWith('【') && part.endsWith('】')) {
           const placeholder = part.slice(1, -1);
@@ -221,7 +221,7 @@ const App = () => {
         1. 輸出的最後一個字必須是「句號(。)」。
         2. 嚴格禁止在句號後面出現引號、括號或其他任何標點符號。
         3. 如果句子沒說完，請強制在結尾處補上句號使其完整。
-        4. 不要使用表情符號。`,
+        4. 不要使用任何表情符號或 Emoji。`,
         config: {
           thinkingConfig: { thinkingBudget: 0 },
           maxOutputTokens: 500,
@@ -229,7 +229,6 @@ const App = () => {
       });
       let text = response.text?.trim() || "";
       
-      // 強製結尾清理邏輯：移除末尾非句號的所有標點並強行補上句號
       if (text) {
         text = text.replace(/[，,！!？?\"」\)\s]+$/, '');
         if (!text.endsWith('。')) {
@@ -300,22 +299,22 @@ const App = () => {
   const mapImageUrl = "https://drive.google.com/thumbnail?id=1N67L-xxy99CraTknq_tGbgg8WrGZZtAV&sz=w1920";
 
   return (
-    <div className="relative w-full min-h-screen flex flex-col items-center py-4 md:py-10 font-map">
+    <div className="relative w-full min-h-screen flex flex-col items-center py-4 md:py-10 font-lxgw-reg">
       {!studentInfo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-[#fef9e7] shadow-2xl p-6 md:p-10 max-w-md w-full border-8 border-[#5d2e0a] rounded-3xl parchment-shadow">
             <div className="text-center mb-6">
               <Compass size={48} className="text-[#8b4513] mx-auto mb-4" />
-              <h2 className="text-4xl font-bold text-[#5d2e0a]">探險家航行日誌</h2>
+              <h2 className="text-4xl font-lxgw-bold text-[#5d2e0a]">探險家航行日誌</h2>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-4 font-lxgw-bold">
               <input type="text" placeholder="船隊 (班級)" value={tempStudentInput.className} onChange={(e) => setTempStudentInput({...tempStudentInput, className: e.target.value})} className="w-full p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold focus:border-[#8b4513] outline-none" />
               <div className="flex gap-4">
                 <input type="number" placeholder="座號" value={tempStudentInput.seatNumber} onChange={(e) => setTempStudentInput({...tempStudentInput, seatNumber: e.target.value})} className="w-1/3 p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
                 <input type="text" placeholder="探險員姓名" value={tempStudentInput.name} onChange={(e) => setTempStudentInput({...tempStudentInput, name: e.target.value})} className="flex-1 p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
               </div>
               {validationError && <p className="text-red-700 font-bold text-center">{validationError}</p>}
-              <button onClick={handleLogin} className="w-full bg-[#5d2e0a] text-[#fef9e7] font-bold py-4 text-2xl tracking-widest hover:bg-black transition-all rounded-2xl">解開地圖封印</button>
+              <button onClick={handleLogin} className="w-full bg-[#5d2e0a] text-[#fef9e7] font-lxgw-bold py-4 text-2xl tracking-widest hover:bg-black transition-all rounded-2xl shadow-lg">解開地圖封印</button>
             </div>
           </div>
         </div>
@@ -326,7 +325,7 @@ const App = () => {
           {!imageError ? (
             <img src={mapImageUrl} className="map-image select-none pointer-events-none" onError={() => setImageError(true)} />
           ) : (
-            <div className="w-full h-96 flex items-center justify-center text-gray-400">地圖載入中...</div>
+            <div className="w-full h-96 flex items-center justify-center text-gray-400 font-lxgw-bold">地圖載入中...</div>
           )}
           {islands.map((island) => (
             <div key={island.id} onClick={() => handleIslandClick(island)} className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10" style={{ top: island.top, left: island.left, width: island.width, height: island.height }}>
@@ -336,7 +335,7 @@ const App = () => {
             </div>
           ))}
           {studentInfo && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-3 px-6 py-2 bg-[#fef9e7]/95 border-2 border-[#5d2e0a] shadow-2xl text-xs md:text-lg font-bold text-[#5d2e0a] whitespace-nowrap rounded-full">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-3 px-6 py-2 bg-[#fef9e7]/95 border-2 border-[#5d2e0a] shadow-2xl text-xs md:text-lg font-lxgw-bold text-[#5d2e0a] whitespace-nowrap rounded-full">
               <span className="flex items-center gap-1"><MapIcon size={20}/> 進度: {completedIslands.length}/6</span>
               <span className="border-l-2 border-[#5d2e0a]/30 pl-3">🚢 {studentInfo.className} 隊 | #{studentInfo.seatNumber} {studentInfo.name}</span>
             </div>
@@ -346,11 +345,11 @@ const App = () => {
 
       {activeIsland && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#fef9e7] shadow-2xl w-full max-w-4xl border-4 md:border-8 border-[#5d2e0a] max-h-[96vh] flex flex-col parchment-shadow rounded-3xl md:rounded-[2.5rem] overflow-hidden">
+          <div className="bg-[#fef9e7] shadow-2xl w-full max-w-4xl border-4 md:border-8 border-[#5d2e0a] max-h-[96vh] flex flex-col parchment-shadow rounded-3xl md:rounded-[2.5rem] overflow-hidden font-lxgw-reg">
             <div className={`p-4 md:p-6 ${activeIsland.color} text-white flex justify-between items-center shrink-0 shadow-lg`}>
               <div className="flex items-center gap-3">
                 {selectedSong ? <button onClick={() => setSelectedSong(null)} className="p-2 hover:bg-black/20 rounded-full transition-all"><ArrowLeft size={28}/></button> : <div className="p-1">{activeIsland.icon}</div>}
-                <h2 className="text-2xl md:text-4xl font-bold truncate tracking-widest">{selectedSong ? `《${selectedSong}》` : activeIsland.name}</h2>
+                <h2 className="text-2xl md:text-4xl font-lxgw-bold truncate tracking-widest">{selectedSong ? `《${selectedSong}》` : activeIsland.name}</h2>
               </div>
               <button onClick={closeModal} className="p-2 hover:bg-black/20 rounded-full transition-all"><X size={32}/></button>
             </div>
@@ -359,17 +358,17 @@ const App = () => {
               {!selectedSong ? (
                 <>
                   <div className="bg-white/40 p-6 rounded-[2rem] border-2 border-dashed border-[#5d2e0a]/20 shadow-inner flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                    <p className="text-lg md:text-2xl text-gray-800 font-bold leading-relaxed tracking-wide whitespace-pre-line flex-1 font-kai">「{activeIsland.content}」</p>
-                    <div className="shrink-0 px-6 py-3 bg-[#5d2e0a]/10 border-2 border-[#5d2e0a]/20 rounded-2xl text-center min-w-[150px] shadow-sm">
-                        <div className="text-sm font-bold text-[#5d2e0a]/60 uppercase tracking-widest mb-1 font-kai">探索進度</div>
-                        <div className="text-3xl font-black text-[#5d2e0a] flex items-center justify-center gap-2">
-                           <Trophy size={24} className={activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length >= 2 ? 'text-amber-500 animate-pulse' : 'text-gray-400'}/>
+                    <p className="text-lg md:text-2xl text-gray-800 font-lxgw-reg leading-relaxed tracking-wide whitespace-pre-line flex-1">「{activeIsland.content}」</p>
+                    <div className="shrink-0 px-5 py-2.5 bg-[#5d2e0a]/10 border-2 border-[#5d2e0a]/20 rounded-2xl text-center min-w-[130px] shadow-sm">
+                        <div className="text-lg md:text-xl font-lxgw-bold text-[#5d2e0a]/80 uppercase tracking-widest mb-0.5">探索進度</div>
+                        <div className="text-2xl md:text-3xl font-black text-[#5d2e0a] flex items-center justify-center gap-2 font-lxgw-bold">
+                           <Trophy size={26} className={activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length >= 2 ? 'text-amber-500 animate-pulse' : 'text-gray-400'}/>
                            {activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length} / 2
                         </div>
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <h3 className="text-[#5d2e0a] font-bold text-2xl flex items-center gap-2 px-4"><Music size={28} className={activeIsland.textColor}/> 島嶼秘藏歌單</h3>
+                    <h3 className="text-[#5d2e0a] font-lxgw-bold text-2xl flex items-center gap-2 px-4 tracking-widest"><Music size={28} className={activeIsland.textColor}/> 島嶼秘藏歌單</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {activeIsland.songs.map((song, idx) => {
                         const isDone = songProgress[song]?.isSubmitted;
@@ -377,7 +376,7 @@ const App = () => {
                         const emoji = songEmojis[song] || '🎵';
                         return (
                           <button key={idx} onClick={() => handleSongClick(song)} disabled={!hasData}
-                            className={`px-4 py-4 rounded-2xl text-2xl font-bold border-2 transition-all flex items-center justify-between gap-3 text-left shadow-sm min-h-[4.5rem] ${hasData ? isDone ? 'bg-green-100 text-green-900 border-green-700/30' : 'bg-white/80 text-[#5d2e0a] border-[#5d2e0a]/10 hover:border-[#5d2e0a] hover:bg-white hover:shadow-lg active:scale-95' : 'bg-gray-100 text-gray-400 border-gray-200 opacity-50'}`}
+                            className={`px-4 py-4 rounded-2xl text-xl md:text-2xl font-lxgw-bold border-2 transition-all flex items-center justify-between gap-3 text-left shadow-sm min-h-[4.5rem] ${hasData ? isDone ? 'bg-green-100 text-green-900 border-green-700/30' : 'bg-white/80 text-[#5d2e0a] border-[#5d2e0a]/10 hover:border-[#5d2e0a] hover:bg-white hover:shadow-lg active:scale-95' : 'bg-gray-100 text-gray-400 border-gray-200 opacity-50'}`}
                           >
                             <span className="flex items-center gap-3 overflow-hidden">
                                 <span className="text-2xl shrink-0">{emoji}</span>
@@ -394,16 +393,16 @@ const App = () => {
                 <div className="space-y-8 animate-in fade-in duration-500">
                   <div className="bg-white/50 p-6 rounded-[2.5rem] border-l-[12px] shadow-lg relative" style={{ borderColor: activeIsland.textColor.replace('text-', '') }}>
                     <div className="flex justify-between items-start mb-4">
-                      <h3 className={`font-bold text-2xl md:text-3xl flex items-center gap-3 ${activeIsland.textColor} tracking-widest`}><Info size={32}/> 景點情報</h3>
+                      <h3 className={`font-lxgw-bold text-2xl md:text-3xl flex items-center gap-3 ${activeIsland.textColor} tracking-widest`}><Info size={32}/> 景點情報</h3>
                       {songData[selectedSong].lyricUrl && (
-                        <a href={songData[selectedSong].lyricUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold transition-colors">
+                        <a href={songData[selectedSong].lyricUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-lxgw-bold transition-colors">
                           <ExternalLink size={20}/> 歌詞連結
                         </a>
                       )}
                     </div>
-                    <p className="text-lg md:text-2xl text-gray-800 font-bold leading-relaxed font-kai">{songData[selectedSong].info}</p>
+                    <p className="text-lg md:text-2xl text-gray-800 font-lxgw-reg leading-relaxed">{songData[selectedSong].info}</p>
                     <div className="mt-8 pt-6 border-t-2 border-[#5d2e0a]/10">
-                        <button onClick={handlePlayAndUnlock} className={`w-full flex items-center justify-center gap-4 text-white font-bold py-6 rounded-2xl text-2xl shadow-2xl hover:scale-[1.01] transition-all tracking-widest ${activeIsland.color}`}>
+                        <button onClick={handlePlayAndUnlock} className={`w-full flex items-center justify-center gap-4 text-white font-lxgw-bold py-6 rounded-2xl text-2xl shadow-2xl hover:scale-[1.01] transition-all tracking-widest ${activeIsland.color}`}>
                             {songProgress[selectedSong].timer > 0 ? <Loader2 className="animate-spin" size={36}/> : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted ? <CheckCircle size={36}/> : <PlayCircle size={36}/>)} 
                             {songProgress[selectedSong].timer > 0 ? `奏鳴中 ${formatTime(songProgress[selectedSong].timer)}` : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted ? '重新聆聽樂章' : '啟動樂章')}
                         </button>
@@ -414,28 +413,28 @@ const App = () => {
                     {songProgress[selectedSong].timer > 0 ? (
                       <div className="bg-[#5d2e0a]/5 border-4 border-dashed border-[#5d2e0a]/20 p-10 rounded-[3rem] text-center space-y-6 animate-pulse">
                         <Lock size={80} className="text-[#5d2e0a]/40 mx-auto" />
-                        <h4 className="text-3xl font-bold text-[#5d2e0a] font-map">樂章封印中</h4>
-                        <p className="text-xl md:text-2xl text-[#5d2e0a]/60 font-kai">「請放下筆，專心聆聽這段旋律...」</p>
+                        <h4 className="text-3xl font-lxgw-bold text-[#5d2e0a]">樂章封印中</h4>
+                        <p className="text-xl md:text-2xl text-[#5d2e0a]/60 font-lxgw-reg">「請放下筆，專心聆聽這段旋律...」</p>
                       </div>
                     ) : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted) ? (
                       <div className="animate-in slide-in-from-bottom-10 duration-700 space-y-8">
                         <div className="bg-white/40 p-6 border-l-8 border-[#5d2e0a] shadow-md rounded-r-[2rem]">
-                          <h3 className="text-[#5d2e0a] font-bold text-2xl md:text-3xl mb-4 flex items-center gap-3 font-map"><Search size={32} className={activeIsland.textColor}/> 線索搜查</h3>
-                          <p className="text-xl md:text-2xl text-gray-800 font-bold mb-6 font-kai">「{songData[selectedSong].quiz.question}」</p>
+                          <h3 className="text-[#5d2e0a] font-lxgw-bold text-2xl md:text-3xl mb-4 flex items-center gap-3 tracking-widest"><Search size={32} className={activeIsland.textColor}/> 線索搜查</h3>
+                          <p className="text-xl md:text-2xl text-gray-800 font-lxgw-bold mb-6">「{songData[selectedSong].quiz.question}」</p>
                           <div className="grid gap-3">
                             {songData[selectedSong].quiz.options.map((opt, i) => (
                               <label key={i} className={`flex items-center gap-4 p-5 cursor-pointer border-2 rounded-2xl transition-all ${songProgress[selectedSong].answer === opt ? 'bg-white border-[#5d2e0a] shadow-xl scale-[1.01]' : 'bg-white/40 border-transparent hover:bg-white/70'}`}>
                                 <input type="radio" checked={songProgress[selectedSong].answer === opt} onChange={() => {
                                     if(!songProgress[selectedSong].isSubmitted) setSongProgress(p => ({...p, [selectedSong]: {...p[selectedSong], answer: opt}}));
                                 }} disabled={songProgress[selectedSong].isSubmitted} className="w-8 h-8 text-[#5d2e0a]" />
-                                <span className="text-xl md:text-2xl font-bold font-kai">{opt}</span>
+                                <span className="text-xl md:text-2xl font-lxgw-bold">{opt}</span>
                               </label>
                             ))}
                           </div>
                         </div>
 
                         <div className="bg-white/40 p-6 border-r-8 border-[#5d2e0a] shadow-md rounded-l-[2rem]">
-                          <h3 className="text-[#5d2e0a] font-bold text-2xl md:text-3xl mb-4 flex items-center gap-3 font-map"><Book size={32} className={activeIsland.textColor}/> 航行筆記</h3>
+                          <h3 className="text-[#5d2e0a] font-lxgw-bold text-2xl md:text-3xl mb-4 flex items-center gap-3 tracking-widest"><Book size={32} className={activeIsland.textColor}/> 航行筆記</h3>
                           {songData[selectedSong].responseFormat ? (
                                <div className="bg-white/60 p-6 border-2 border-[#5d2e0a]/10 rounded-2xl shadow-inner">
                                    <StructuredNoteInput template={songData[selectedSong].responseFormat || ''} savedValues={songProgress[selectedSong].noteInputValues || {}} onUpdate={(vals, full) => {
@@ -445,16 +444,16 @@ const App = () => {
                           ) : (
                                <textarea value={songProgress[selectedSong].note} onChange={(e) => {
                                    if(!songProgress[selectedSong].isSubmitted) setSongProgress(p => ({...p, [selectedSong]: {...p[selectedSong], note: e.target.value}}));
-                               }} disabled={songProgress[selectedSong].isSubmitted} className="w-full p-6 bg-transparent border-b-4 border-[#5d2e0a]/10 focus:border-[#5d2e0a] outline-none min-h-[140px] text-xl md:text-2xl font-bold resize-none font-kai" />
+                               }} disabled={songProgress[selectedSong].isSubmitted} className="w-full p-6 bg-transparent border-b-4 border-[#5d2e0a]/10 focus:border-[#5d2e0a] outline-none min-h-[140px] text-xl md:text-2xl font-lxgw-reg font-bold resize-none" />
                           )}
                         </div>
                         
                         {!songProgress[selectedSong].isSubmitted && (
-                          <div className="flex flex-col gap-4">
+                          <div className="flex flex-col gap-4 font-lxgw-bold">
                             {submitWarning && (
                                 <div className="bg-red-50 border-l-8 border-red-600 p-6 rounded-xl flex items-center gap-4 animate-bounce shadow-lg">
                                     <AlertCircle className="text-red-600" size={32}/>
-                                    <p className="text-red-800 font-bold text-xl md:text-2xl font-kai">{submitWarning}</p>
+                                    <p className="text-red-800 font-bold text-xl md:text-2xl">{submitWarning}</p>
                                 </div>
                             )}
                             <button onClick={() => {
@@ -462,7 +461,7 @@ const App = () => {
                                 if (!validateNoteBlanks(selectedSong)) return setSubmitWarning("✍️ 航行筆記尚未完成喔！");
                                 setSubmitWarning(null);
                                 setShowConfirm(true);
-                            }} disabled={isSubmitting} className="w-full bg-[#5d2e0a] text-white font-bold py-6 rounded-2xl text-3xl tracking-[0.3em] hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-3">
+                            }} disabled={isSubmitting} className="w-full bg-[#5d2e0a] text-white font-lxgw-bold py-6 rounded-2xl text-3xl tracking-[0.3em] hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-3">
                                 {isSubmitting ? <Loader2 className="animate-spin" size={32}/> : <Send size={32}/>} 送出探索紀錄
                             </button>
                           </div>
@@ -471,7 +470,7 @@ const App = () => {
                     ) : (
                       <div className="bg-[#5d2e0a]/5 border-2 border-[#5d2e0a]/10 p-12 rounded-[2rem] text-center flex flex-col items-center gap-4">
                         <Unlock size={48} className="text-[#5d2e0a]/20" />
-                        <p className="text-2xl font-bold text-[#5d2e0a]/40 font-kai">尚未啟動探索...</p>
+                        <p className="text-2xl font-lxgw-reg font-bold text-[#5d2e0a]/40">尚未啟動探索...</p>
                       </div>
                     )}
                   </div>
@@ -485,40 +484,40 @@ const App = () => {
       {showConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
           <div className="bg-[#fef9e7] p-8 max-w-sm w-full border-8 border-[#5d2e0a] parchment-shadow text-center rounded-[2.5rem]">
-            <h3 className="text-3xl font-bold text-[#5d2e0a] mb-4 font-map">封存紀錄？</h3>
-            <p className="text-lg font-bold mb-6 text-gray-700 font-kai">「提交後將不可再改。」</p>
+            <h3 className="text-3xl font-lxgw-bold text-[#5d2e0a] mb-4 tracking-widest">封存紀錄？</h3>
+            <p className="text-lg font-lxgw-reg font-bold mb-6 text-gray-700">「提交後將不可再改。」</p>
             {(isSubmitting || isAiLoading) && (
               <div className="mb-4 flex flex-col items-center gap-2">
                 <Loader2 className="animate-spin text-amber-600" size={32} />
-                <p className="text-amber-700 font-bold font-kai animate-pulse">航行守護者正在細品您的筆記...</p>
+                <p className="text-amber-700 font-lxgw-bold animate-pulse">守護者正在細品您的筆記...</p>
               </div>
             )}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 font-lxgw-bold">
               <button onClick={handleRealSubmit} disabled={isSubmitting || isAiLoading} className="w-full py-4 bg-green-800 text-white font-bold text-xl rounded-2xl shadow-xl flex items-center justify-center gap-2 disabled:opacity-50">
                 {(isSubmitting || isAiLoading) ? "處理中..." : "是的，封存！"}
               </button>
-              <button onClick={() => setShowConfirm(false)} disabled={isSubmitting || isAiLoading} className="py-2 text-gray-400 font-bold text-lg font-kai disabled:opacity-30">再思索片刻</button>
+              <button onClick={() => setShowConfirm(false)} disabled={isSubmitting || isAiLoading} className="py-2 text-gray-400 font-bold text-lg disabled:opacity-30">再思索片刻</button>
             </div>
           </div>
         </div>
       )}
 
       {alertInfo && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 md:p-4 bg-black/95 backdrop-blur-md overflow-hidden">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 md:p-4 bg-black/95 backdrop-blur-md overflow-hidden font-lxgw-reg">
           <div className="bg-[#fef9e7] p-5 md:p-10 max-w-2xl w-full border-4 md:border-8 border-[#5d2e0a] parchment-shadow rounded-[2.5rem] md:rounded-[3rem] flex flex-col max-h-[95vh] overflow-hidden">
             <div className="overflow-y-auto custom-scrollbar flex-1 pr-1 md:pr-2 space-y-6 md:space-y-8 pb-16">
               <div className={`flex justify-center pt-4 ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>
                 {alertInfo.type === 'success' ? <CheckCircle size={56} className="md:w-20 md:h-20" /> : <AlertCircle size={56} className="md:w-20 md:h-20" />}
               </div>
-              <h3 className="text-2xl md:text-4xl font-bold text-[#5d2e0a] text-center font-map px-2">{alertInfo.title}</h3>
-              <p className="text-lg md:text-2xl font-bold text-center text-gray-800 font-kai leading-relaxed px-2">{alertInfo.message}</p>
+              <h3 className="text-2xl md:text-4xl font-lxgw-bold text-[#5d2e0a] text-center tracking-widest px-2">{alertInfo.title}</h3>
+              <p className="text-lg md:text-2xl font-lxgw-reg font-bold text-center text-gray-800 leading-relaxed px-2">{alertInfo.message}</p>
               
               {alertInfo.aiFeedback && (
                 <div className="bg-white/70 border-2 border-amber-200 p-6 md:p-10 rounded-2xl md:rounded-3xl relative shadow-inner min-h-[180px] overflow-visible">
                   <Sparkles className="absolute -top-3 -left-3 text-amber-500 fill-amber-500" size={28} />
-                  <h4 className="text-amber-800 font-bold text-lg md:text-2xl mb-5 flex items-center gap-2 font-map"><ScrollText size={22}/> 航行日誌：靈感迴聲</h4>
+                  <h4 className="text-amber-800 font-lxgw-bold text-lg md:text-2xl mb-5 flex items-center gap-2 tracking-widest"><ScrollText size={22}/> 航行日誌：靈感迴聲</h4>
                   <div className="w-full">
-                    <p className="text-xl md:text-3xl text-gray-700 font-kai leading-relaxed md:leading-loose whitespace-pre-line pr-10 pb-12 break-words">
+                    <p className="text-xl md:text-3xl text-gray-700 font-lxgw-reg leading-relaxed md:leading-loose whitespace-pre-line pr-10 pb-16 break-words">
                       「{alertInfo.aiFeedback}」
                     </p>
                   </div>
@@ -527,7 +526,7 @@ const App = () => {
             </div>
 
             <div className="pt-2 md:pt-4">
-              <button onClick={() => setAlertInfo(null)} className="w-full py-4 md:py-6 bg-[#5d2e0a] text-white font-bold text-lg md:text-2xl rounded-2xl shadow-2xl tracking-widest font-kai hover:bg-black active:scale-[0.98] transition-all shrink-0">
+              <button onClick={() => setAlertInfo(null)} className="w-full py-4 md:py-6 bg-[#5d2e0a] text-white font-lxgw-bold text-lg md:text-2xl rounded-2xl shadow-2xl tracking-widest hover:bg-black active:scale-[0.98] transition-all shrink-0">
                 繼續航程
               </button>
             </div>

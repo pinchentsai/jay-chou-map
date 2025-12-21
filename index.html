@@ -7,6 +7,8 @@
     <title>Jay Chou Music Treasure Map</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 導入霞鶩文楷 (LXGW WenKai) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-lite-webfont@1.1.0/style.css" />
     <style>
       :root {
         --parchment: #f4e4bc;
@@ -20,17 +22,26 @@
       body {
         background-color: var(--parchment);
         background-image: url("https://www.transparenttextures.com/patterns/papyros.png");
-        font-family: 'Ma Shan Zheng', 'Noto Serif TC', serif;
+        font-family: 'LXGW WenKai Lite', sans-serif;
         color: var(--ink);
         overflow-x: hidden;
         margin: 0;
         padding: 0;
       }
+      /* 標題與按鈕：霞鶩文楷 粗體 (700) + 加強字距 */
+      .font-lxgw-bold {
+        font-family: 'LXGW WenKai Lite', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+      }
+      /* 內文與筆記：霞鶩文楷 常規體 (400) */
+      .font-lxgw-reg {
+        font-family: 'LXGW WenKai Lite', sans-serif;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+      }
       .font-map {
         font-family: 'Ma Shan Zheng', cursive;
-      }
-      .font-kai {
-        font-family: "標楷體", "DFKai-SB", "BiauKai", "Apple LiSung", serif;
       }
       .parchment-shadow {
         box-shadow: 
@@ -90,7 +101,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <!-- 修正：將 /index.tsx 改為 ./index.tsx 確保在 GitHub Pages 子路徑下能正確加載 -->
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

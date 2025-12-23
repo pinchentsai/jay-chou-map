@@ -1,19 +1,26 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, CheckCircle, Music, ArrowLeft, Send, AlertCircle, Loader2, PenTool, PlayCircle, Lock, Timer, Compass, Map as MapIcon, Book, Info, Search, ExternalLink, Trophy, Unlock, Sparkles, ScrollText } from 'lucide-react';
+import { X, CheckCircle, Music, ArrowLeft, Send, AlertCircle, Loader2, PenTool, PlayCircle, Lock, Timer, Compass, Map as MapIcon, Book, Info, Search, ExternalLink, Trophy, Unlock, Sparkles, ScrollText, LogOut } from 'lucide-react';
 import { songData, islands } from './data';
 import { GoogleGenAI } from "@google/genai";
 
 const GOOGLE_SCRIPT_URL: string = "https://script.google.com/macros/s/AKfycbzm66QNefp7MaPBG3ApPiBP6MuYyc8nC7KKhLcAQCJHZFELB_qoWVvuaVVIpooCsQwTYg/exec";
+const STORAGE_BASE_KEY = "jay_chou_v1_";
 
 const songEmojis: Record<string, string> = {
   '東風破': '🎻', '青花瓷': '🏺', '髮如雪': '❄️', '菊花台': '🌼', '煙花易冷': '🎆', '霍元甲': '🥋', '本草綱目': '🌿',
-  '雙截棍': '🥢', '以父之名': '⛪', '忍者': '🥷', '半獸人': '🐺', '紅模仿': '💃',
+  '雙截棍': '🥢', '以父之名': '教堂', '忍者': '🥷', '半獸人': '🐺', '紅模仿': '💃',
   '夜曲': '🎹', '琴傷': '🎼', '逆鱗': '🐲', '迷迭香': '🌿', '土耳其冰淇淋': '🍦',
   '止戰之殤': '🕊️', '梯田': '🌾', '懦夫': '🚫', '爸，我回來了': '🏠', '超人不會飛': '🦸',
   '晴天': '☀️', '安靜': '🤫', '擱淺': '⚓', '不能說的秘密': '🤫', '說好的幸福呢': '💔', '告白氣球': '🎈',
   '簡單愛': '❤️', '牛仔很忙': '🤠', '聽媽媽的話': '👩', '爺爺泡的茶': '🍵', '稻香': '🌾', '水手怕水': '⚓', '魔術先生': '🎩', '喬克叔叔': '🤡'
 };
+
+interface Student {
+  className: string;
+  seatNumber: string;
+  name: string;
+}
 
 interface StructuredNoteInputProps {
   template: string;
@@ -69,7 +76,7 @@ const StructuredNoteInput: React.FC<StructuredNoteInputProps> = ({ template, sav
 };
 
 const App = () => {
-  const [studentInfo, setStudentInfo] = useState<{ className: string; seatNumber: string; name: string } | null>(null);
+  const [studentInfo, setStudentInfo] = useState<Student | null>(null);
   const [tempStudentInput, setTempStudentInput] = useState({ className: '', seatNumber: '', name: '' });
   const [activeIsland, setActiveIsland] = useState<typeof islands[0] | null>(null);
   const [selectedSong, setSelectedSong] = useState<string | null>(null);
@@ -91,6 +98,34 @@ const App = () => {
     timer: number; 
   }>>({});
 
+  // 1. 初始化讀取：啟動時檢查上次登入的學生
+  useEffect(() => {
+    const lastStudent = localStorage.getItem('jay_chou_last_student');
+    if (lastStudent) {
+      try {
+        const parsed = JSON.parse(lastStudent);
+        setStudentInfo(parsed);
+        loadStudentProgress(parsed);
+      } catch (e) {
+        console.error("Fail to load student info");
+      }
+    }
+  }, []);
+
+  // 2. 自動存檔：當進度或完成島嶼變化時，存入特定學生的 Key
+  useEffect(() => {
+    if (studentInfo) {
+      const studentKey = `${STORAGE_BASE_KEY}${studentInfo.className}_${studentInfo.seatNumber}_${studentInfo.name}`;
+      const dataToSave = {
+        songProgress,
+        completedIslands
+      };
+      localStorage.setItem(studentKey, JSON.stringify(dataToSave));
+      localStorage.setItem('jay_chou_last_student', JSON.stringify(studentInfo));
+    }
+  }, [songProgress, completedIslands, studentInfo]);
+
+  // 3. 計時器邏輯
   useEffect(() => {
     const interval = setInterval(() => {
       setSongProgress(prev => {
@@ -113,13 +148,40 @@ const App = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const loadStudentProgress = (student: Student) => {
+    const studentKey = `${STORAGE_BASE_KEY}${student.className}_${student.seatNumber}_${student.name}`;
+    const savedData = localStorage.getItem(studentKey);
+    if (savedData) {
+      try {
+        const { songProgress: sp, completedIslands: ci } = JSON.parse(savedData);
+        setSongProgress(sp || {});
+        setCompletedIslands(ci || []);
+      } catch (e) {
+        console.error("Fail to parse progress data");
+      }
+    } else {
+        // 全新學生，重設狀態
+        setSongProgress({});
+        setCompletedIslands([]);
+    }
+  };
+
   const handleLogin = () => {
     if (!tempStudentInput.className.trim() || !tempStudentInput.seatNumber.trim() || !tempStudentInput.name.trim()) {
       setValidationError("⚠️ 紀錄需完整：班級、座號與姓名");
       return;
     }
-    setStudentInfo(tempStudentInput);
+    const student = { ...tempStudentInput };
+    setStudentInfo(student);
+    loadStudentProgress(student);
     setValidationError(null);
+  };
+
+  const handleLogout = () => {
+    setStudentInfo(null);
+    localStorage.removeItem('jay_chou_last_student');
+    setSongProgress({});
+    setCompletedIslands([]);
   };
 
   const handleIslandClick = (island: typeof islands[0]) => {
@@ -187,7 +249,8 @@ const App = () => {
         window.open(songData[selectedSong].url, '_blank');
         return;
       }
-      const otherSongInTimer = Object.entries(songProgress).find(([name, prog]) => name !== selectedSong && prog.timer > 0);
+      // Fix: Cast 'prog' to bypass TypeScript 'unknown' error when accessing 'timer' property on Object.entries result
+      const otherSongInTimer = Object.entries(songProgress).find(([name, prog]) => name !== selectedSong && (prog as any).timer > 0);
       if (otherSongInTimer) {
         setAlertInfo({
           title: "⚠️ 專注力檢測",
@@ -228,14 +291,10 @@ const App = () => {
         },
       });
       let text = response.text?.trim() || "";
-      
       if (text) {
         text = text.replace(/[，,！!？?\"」\)\s]+$/, '');
-        if (!text.endsWith('。')) {
-          text += '。';
-        }
+        if (!text.endsWith('。')) text += '。';
       }
-      
       return text || "你的觀察非常有深度，這段航行因為你的感悟而變得更有意義。";
     } catch (error) {
       console.error("AI Error:", error);
@@ -271,7 +330,6 @@ const App = () => {
         setSongProgress(updatedProgress);
 
         const completedInThisIsland = activeIsland.songs.filter(s => updatedProgress[s]?.isSubmitted).length;
-        
         if (completedInThisIsland >= 2 && !completedIslands.includes(activeIsland.id)) {
             setCompletedIslands(prev => [...prev, activeIsland.id]);
             setAlertInfo({ 
@@ -338,6 +396,7 @@ const App = () => {
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-3 px-6 py-2 bg-[#fef9e7]/95 border-2 border-[#5d2e0a] shadow-2xl text-xs md:text-lg font-lxgw-bold text-[#5d2e0a] whitespace-nowrap rounded-full">
               <span className="flex items-center gap-1"><MapIcon size={20}/> 進度: {completedIslands.length}/6</span>
               <span className="border-l-2 border-[#5d2e0a]/30 pl-3">🚢 {studentInfo.className} 隊 | #{studentInfo.seatNumber} {studentInfo.name}</span>
+              <button onClick={handleLogout} className="ml-2 hover:text-red-600 transition-colors"><LogOut size={18}/></button>
             </div>
           )}
         </div>
@@ -359,10 +418,10 @@ const App = () => {
                 <>
                   <div className="bg-white/40 p-6 rounded-[2rem] border-2 border-dashed border-[#5d2e0a]/20 shadow-inner flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                     <p className="text-lg md:text-2xl text-gray-800 font-lxgw-reg leading-relaxed tracking-wide whitespace-pre-line flex-1">「{activeIsland.content}」</p>
-                    <div className="shrink-0 px-5 py-2.5 bg-[#5d2e0a]/10 border-2 border-[#5d2e0a]/20 rounded-2xl text-center min-w-[130px] shadow-sm">
-                        <div className="text-lg md:text-xl font-lxgw-bold text-[#5d2e0a]/80 uppercase tracking-widest mb-0.5">探索進度</div>
-                        <div className="text-2xl md:text-3xl font-black text-[#5d2e0a] flex items-center justify-center gap-2 font-lxgw-bold">
-                           <Trophy size={26} className={activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length >= 2 ? 'text-amber-500 animate-pulse' : 'text-gray-400'}/>
+                    <div className="shrink-0 px-6 py-3 bg-[#5d2e0a]/10 border-2 border-[#5d2e0a]/20 rounded-2xl text-center min-w-[140px] shadow-sm">
+                        <div className="text-xl md:text-2xl font-lxgw-bold text-[#5d2e0a]/80 uppercase tracking-widest mb-0.5">探索進度</div>
+                        <div className="text-3xl md:text-4xl font-black text-[#5d2e0a] flex items-center justify-center gap-2 font-lxgw-bold">
+                           <Trophy size={30} className={activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length >= 2 ? 'text-amber-500 animate-pulse' : 'text-gray-400'}/>
                            {activeIsland.songs.filter(s => songProgress[s]?.isSubmitted).length} / 2
                         </div>
                     </div>

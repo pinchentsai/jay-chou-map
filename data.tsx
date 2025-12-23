@@ -60,7 +60,7 @@ export const songData: Record<string, SongInfo> = {
     },
     correctAnswer: '大提琴 (聲音低沉厚實)',
     note: '題目：歌詞最後一句「徒留我孤單在湖面成雙」，意思是只剩下倒影陪著自己。如果這首歌是一幅畫，你覺得整張畫會是以什麼「顏色」為主？為什麼？',
-    responseFormat: '我覺得這幅畫會是以【      】色為主。因為這首歌的旋律和歌詞給我一種【（例如：冰冷、孤單、溫暖、寧靜）】的感覺。',
+    responseFormat: '我覺得這幅畫會是以【      】色為主。因為這首歌的旋律和歌詞給我一種【          】的感覺。',
     url: 'https://www.youtube.com/watch?v=PdjbRvvJAzg&list=RDPdjbRvvJAzg&start_radio=1',
     lyricUrl: 'https://www.kkbox.com/tw/tc/song/KoUkMXehP2VFv2qMLi'
   },
@@ -84,7 +84,7 @@ export const songData: Record<string, SongInfo> = {
     },
     correctAnswer: '女生聲音的「花旦」',
     note: '這首歌的節奏雖然像在「打架」，但歌詞裡一直重複說「止干戈」(停止戰爭)。周杰倫唱道：「霍霍霍霍... 天下誰的『第一』又如何？止干戈我輩尚武德」。 請思考一下：如果「打贏別人」不是學武術的目的，那你覺得真正的「強者」應該具備什麼樣的特質？',
-    responseFormat: '我覺得真正的「強者」不一定要打贏別人，而是具備【 （例如：能控制脾氣、保護弱小、勇於認錯、堅持到底）】的特質，因為我覺得能夠做到【（進一步解釋上述特質）】，比用拳頭解決問題更令人佩服。',
+    responseFormat: '我覺得真正的「強者」不一定要打贏別人，而是具備【          】的特質，因為我覺得能夠做到【（進一步解釋上述特質）】，比用拳頭解決問題更令人佩服。',
     url: 'https://www.youtube.com/watch?v=wr-6wwt8RXk&list=RDwr-6wwt8RXk&start_radio=1',
     lyricUrl: 'https://www.kkbox.com/tw/tc/song/SnaAQ9u82cLmzpEDBx'
   },
@@ -110,7 +110,7 @@ export const songData: Record<string, SongInfo> = {
     },
     correctAnswer: '鋼琴（聲音優雅古典）',
     note: '歌詞說「習武之人切記，仁者無敵」，意思是真正強大的人，是因為他有一顆仁愛的心，而不是因為他會打架。請你寫出一種在學校裡，雖然沒有動手，但讓你覺得「這個人很強大、很帥氣」的行為。',
-    responseFormat: '我覺得當同學【(發生什麼困難/被欺負)】 時，有人願意【(做出什麼幫助/挺身而出)】 ，這種行為才是真正的強大。',
+    responseFormat: '我覺得當同學【(發生什麼困難】 時，有人願意【(做出什麼幫助】 ，這種行為才是真正的強大。',
     url: 'https://www.youtube.com/watch?v=OR-0wptI_u0&list=RDOR-0wptI_u0&start_radio=1',
     lyricUrl: 'https://www.kkbox.com/tw/tc/song/H_7BDJ4Y6JmyzPB0An'
   },
@@ -270,7 +270,7 @@ export const songData: Record<string, SongInfo> = {
     },
     correctAnswer: '雷聲與下雨聲',
     note: '歌詞中的主角想要保護媽媽，阻止暴力。家應該是溫暖的避風港。你認為一個「好的家人」（不管是爸爸、媽媽還是孩子），應該具備什麼樣的責任或態度？',
-    responseFormat: '我認為一個「好的家人」最重要的責任是【（例如：保護彼此、情緒管理、好好說話）】。當家人生氣或意見不同的時候，應該用【        】的方式解決，而不是使用暴力。',
+    responseFormat: '我認為一個「好的家人」最重要的責任是【         】。當家人生氣或意見不同的時候，應該用【        】的方式解決，而不是使用暴力。',
     url: 'https://www.youtube.com/watch?v=nhyT8HDT4lg&list=RDnhyT8HDT4lg&start_radio=1',
     lyricUrl: 'https://www.kkbox.com/tw/tc/song/Op_qqsPgzUmSaWfA1O'
   },
@@ -332,7 +332,7 @@ export const songData: Record<string, SongInfo> = {
     },
     correctAnswer: '電吉他',
     note: '每個人心裡都有一些「不能說的秘密」，可能是為了保護自己，也可能是為了給別人驚喜。如果你要準備一個「驚喜」給未來的自己（例如 20 歲的你），你會偷偷把什麼東西或一句話藏起來？',
-    responseFormat: '我會把【（物品或一句話）】當作給未來自己的驚喜秘密。希望 20 歲的我看到時，會記得【（這份秘密的意義，如：小時候的夢想、現在的快樂）】。',
+    responseFormat: '我會把【（物品或一句話）】當作給未來自己的驚喜秘密。希望 20 歲的我看到時，會記得【（這份秘密的意義）】。',
     url: 'https://www.youtube.com/watch?v=uIWypArI73w&list=RDuIWypArI73w&start_radio=1',
     lyricUrl: 'https://www.kkbox.com/tw/tc/song/TX_kkq83AIGG0U5rAM'
   },

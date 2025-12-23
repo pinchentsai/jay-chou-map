@@ -365,11 +365,11 @@ const App = () => {
               <Compass size={48} className="text-[#8b4513] mx-auto mb-4" />
               <h2 className="text-4xl font-lxgw-bold text-[#5d2e0a]">探險家航行日誌</h2>
             </div>
-            <div className="space-y-4 font-lxgw-bold">
+            <div className="space-y-4 font-lxgw-bold w-full">
               <input type="text" placeholder="船隊 (班級)" value={tempStudentInput.className} onChange={(e) => setTempStudentInput({...tempStudentInput, className: e.target.value})} className="w-full p-3 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold focus:border-[#8b4513] outline-none" />
-              <div className="flex gap-4">
-                <input type="number" placeholder="座號" value={tempStudentInput.seatNumber} onChange={(e) => setTempStudentInput({...tempStudentInput, seatNumber: e.target.value})} className="w-28 shrink-0 p-3 px-2 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
-                <input type="text" placeholder="探險員姓名" value={tempStudentInput.name} onChange={(e) => setTempStudentInput({...tempStudentInput, name: e.target.value})} className="flex-1 p-3 px-2 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
+              <div className="flex gap-4 w-full">
+                <input type="number" placeholder="座號" value={tempStudentInput.seatNumber} onChange={(e) => setTempStudentInput({...tempStudentInput, seatNumber: e.target.value})} className="w-24 shrink-0 p-3 px-1 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
+                <input type="text" placeholder="探險員姓名" value={tempStudentInput.name} onChange={(e) => setTempStudentInput({...tempStudentInput, name: e.target.value})} className="flex-1 min-w-0 p-3 px-1 border-b-4 border-[#8b4513]/40 bg-transparent text-xl font-bold outline-none" />
               </div>
               {validationError && <p className="text-red-700 font-bold text-center">{validationError}</p>}
               <button onClick={handleLogin} className="w-full bg-[#5d2e0a] text-[#fef9e7] font-lxgw-bold py-4 text-2xl tracking-widest hover:bg-black transition-all rounded-2xl shadow-lg">解開地圖封印</button>

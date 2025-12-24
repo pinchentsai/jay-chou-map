@@ -291,7 +291,7 @@ const App = () => {
         contents: `一位航行者在《${songName}》的島嶼留下這段感悟：『${noteText}』。`,
         config: {
           systemInstruction: "你是『周杰倫音樂寶藏地圖』的航行守護者。請針對學生的感悟給予一段 80 字以內的「靈感迴聲」。語氣要詩意、正向且像個智者。最後必須以句號(。)結尾。絕對禁止使用 Emoji。",
-          maxOutputTokens: 1000,
+          maxOutputTokens: 8192,
           thinkingConfig: { thinkingBudget: 500 },
         },
       });

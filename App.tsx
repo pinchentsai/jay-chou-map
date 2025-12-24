@@ -95,10 +95,10 @@ const App = () => {
     isSubmitted: boolean;
     isListeningFinished: boolean; 
     noteInputValues: Record<string, string>;
+    unlockEndTime: number | null; 
     timer: number; 
   }>>({});
 
-  // 1. 初始化讀取：啟動時檢查上次登入的學生
   useEffect(() => {
     const lastStudent = localStorage.getItem('jay_chou_last_student');
     if (lastStudent) {
@@ -112,7 +112,6 @@ const App = () => {
     }
   }, []);
 
-  // 2. 自動存檔：當進度或完成島嶼變化時，存入特定學生的 Key
   useEffect(() => {
     if (studentInfo) {
       const studentKey = `${STORAGE_BASE_KEY}${studentInfo.className}_${studentInfo.seatNumber}_${studentInfo.name}`;
@@ -125,26 +124,35 @@ const App = () => {
     }
   }, [songProgress, completedIslands, studentInfo]);
 
-  // 3. 計時器邏輯
   useEffect(() => {
     const interval = setInterval(() => {
       setSongProgress(prev => {
+        const now = Date.now();
         const next = { ...prev };
         let hasChanged = false;
+
         Object.keys(next).forEach(song => {
-          if (next[song].timer > 0 && !next[song].isSubmitted) {
-            const newTimer = next[song].timer - 1;
-            next[song] = { 
-              ...next[song], 
-              timer: newTimer,
-              isListeningFinished: newTimer === 0 ? true : next[song].isListeningFinished
-            };
-            hasChanged = true;
+          const prog = next[song];
+          if (prog.unlockEndTime && !prog.isSubmitted) {
+            const diff = Math.ceil((prog.unlockEndTime - now) / 1000);
+            
+            if (diff <= 0) {
+              if (prog.timer !== 0 || !prog.isListeningFinished) {
+                next[song] = { ...prog, timer: 0, isListeningFinished: true, unlockEndTime: null };
+                hasChanged = true;
+              }
+            } else {
+              if (prog.timer !== diff) {
+                next[song] = { ...prog, timer: diff };
+                hasChanged = true;
+              }
+            }
           }
         });
+
         return hasChanged ? next : prev;
       });
-    }, 1000);
+    }, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -160,7 +168,6 @@ const App = () => {
         console.error("Fail to parse progress data");
       }
     } else {
-        // 全新學生，重設狀態
         setSongProgress({});
         setCompletedIslands([]);
     }
@@ -204,6 +211,7 @@ const App = () => {
             noteInputValues: {}, 
             isSubmitted: false, 
             isListeningFinished: false,
+            unlockEndTime: null,
             timer: 0
           }
         }));
@@ -245,12 +253,12 @@ const App = () => {
         window.open(songData[selectedSong].url, '_blank');
         return;
       }
-      if (current.timer > 0) {
+      if (current.unlockEndTime) {
         window.open(songData[selectedSong].url, '_blank');
         return;
       }
-      // Fix: Cast 'prog' to bypass TypeScript 'unknown' error when accessing 'timer' property on Object.entries result
-      const otherSongInTimer = Object.entries(songProgress).find(([name, prog]) => name !== selectedSong && (prog as any).timer > 0);
+      
+      const otherSongInTimer = Object.entries(songProgress).find(([name, prog]) => name !== selectedSong && (prog as any).unlockEndTime);
       if (otherSongInTimer) {
         setAlertInfo({
           title: "⚠️ 專注力檢測",
@@ -260,11 +268,14 @@ const App = () => {
         return;
       }
       window.open(songData[selectedSong].url, '_blank');
+      
+      const duration = 150; 
       setSongProgress(prev => ({
         ...prev,
         [selectedSong]: { 
           ...prev[selectedSong], 
-          timer: 150 
+          unlockEndTime: Date.now() + duration * 1000,
+          timer: duration
         }
       }));
     }
@@ -272,33 +283,24 @@ const App = () => {
 
   const generateAIFeedback = async (songName: string, noteText: string): Promise<string> => {
     try {
+      if (!process.env.API_KEY) throw new Error("API Key is missing");
       setIsAiLoading(true);
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `你是『周杰倫音樂寶藏地圖』的航行守護者。學生剛剛完成了《${songName}》的島嶼探索並在日誌中留下了感悟。學生筆記內容：『${noteText}』。
-        
-        任務：請針對這段感悟給予一段 60 字以內的「靈感迴聲」。語氣要像是一位航行於音樂海洋的智者，用溫柔、具詩意且正向的方式回應。
-        
-        【極重要規範】：
-        1. 輸出的最後一個字必須是「句號(。)」。
-        2. 嚴格禁止在句號後面出現引號、括號或其他任何標點符號。
-        3. 如果句子沒說完，請強制在結尾處補上句號使其完整。
-        4. 不要使用任何表情符號或 Emoji。`,
+        contents: `一位航行者在《${songName}》的島嶼留下這段感悟：『${noteText}』。`,
         config: {
-          thinkingConfig: { thinkingBudget: 0 },
-          maxOutputTokens: 500,
+          systemInstruction: "你是『周杰倫音樂寶藏地圖』的航行守護者。請針對學生的感悟給予一段 80 字以內的「靈感迴聲」。語氣要詩意、正向且像個智者。最後必須以句號(。)結尾。絕對禁止使用 Emoji。",
+          maxOutputTokens: 1000,
+          thinkingConfig: { thinkingBudget: 500 },
         },
       });
-      let text = response.text?.trim() || "";
-      if (text) {
-        text = text.replace(/[，,！!？?\"」\)\s]+$/, '');
-        if (!text.endsWith('。')) text += '。';
-      }
-      return text || "你的觀察非常有深度，這段航行因為你的感悟而變得更有意義。";
+      const text = response.text;
+      if (!text) throw new Error("Empty AI response");
+      return text.trim();
     } catch (error) {
-      console.error("AI Error:", error);
-      return "你的感悟已成功記錄在日誌中。繼續探索下一座島嶼吧！";
+      console.error("AI Generation Error:", error);
+      return "你的感悟已被記錄在星圖之中，這段航程因你的思考而閃耀。繼續前進吧，探險員！";
     } finally {
       setIsAiLoading(false);
     }
@@ -311,6 +313,8 @@ const App = () => {
     const correctAns = songData[selectedSong]?.correctAnswer;
     const isAnswerCorrect = currentProgress.answer?.trim() === correctAns?.trim();
     
+    const aiResponse = await generateAIFeedback(selectedSong, currentProgress.note);
+
     const params = new URLSearchParams();
     params.append('className', studentInfo.className);
     params.append('seatNumber', studentInfo.seatNumber);
@@ -324,9 +328,8 @@ const App = () => {
 
     try {
         await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-        const aiResponse = await generateAIFeedback(selectedSong, currentProgress.note);
         setShowConfirm(false);
-        const updatedProgress = { ...songProgress, [selectedSong]: { ...currentProgress, isSubmitted: true, timer: 0 } };
+        const updatedProgress = { ...songProgress, [selectedSong]: { ...currentProgress, isSubmitted: true, unlockEndTime: null, timer: 0 } };
         setSongProgress(updatedProgress);
 
         const completedInThisIsland = activeIsland.songs.filter(s => updatedProgress[s]?.isSubmitted).length;
@@ -462,14 +465,14 @@ const App = () => {
                     <p className="text-lg md:text-2xl text-gray-800 font-lxgw-reg leading-relaxed">{songData[selectedSong].info}</p>
                     <div className="mt-8 pt-6 border-t-2 border-[#5d2e0a]/10">
                         <button onClick={handlePlayAndUnlock} className={`w-full flex items-center justify-center gap-4 text-white font-lxgw-bold py-6 rounded-2xl text-2xl shadow-2xl hover:scale-[1.01] transition-all tracking-widest ${activeIsland.color}`}>
-                            {songProgress[selectedSong].timer > 0 ? <Loader2 className="animate-spin" size={36}/> : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted ? <CheckCircle size={36}/> : <PlayCircle size={36}/>)} 
-                            {songProgress[selectedSong].timer > 0 ? `奏鳴中 ${formatTime(songProgress[selectedSong].timer)}` : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted ? '重新聆聽樂章' : '啟動樂章')}
+                            {songProgress[selectedSong].unlockEndTime ? <Loader2 className="animate-spin" size={36}/> : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted ? <CheckCircle size={36}/> : <PlayCircle size={36}/>)} 
+                            {songProgress[selectedSong].unlockEndTime ? `奏鳴中 ${formatTime(songProgress[selectedSong].timer)}` : (songProgress[selectedSong].isListeningFinished || songProgress[selectedSong].isSubmitted ? '重新聆聽樂章' : '啟動樂章')}
                         </button>
                     </div>
                   </div>
 
                   <div className="space-y-8 pb-10">
-                    {songProgress[selectedSong].timer > 0 ? (
+                    {songProgress[selectedSong].unlockEndTime ? (
                       <div className="bg-[#5d2e0a]/5 border-4 border-dashed border-[#5d2e0a]/20 p-10 rounded-[3rem] text-center space-y-6 animate-pulse">
                         <Lock size={80} className="text-[#5d2e0a]/40 mx-auto" />
                         <h4 className="text-3xl font-lxgw-bold text-[#5d2e0a]">樂章封印中</h4>
@@ -564,7 +567,7 @@ const App = () => {
       {alertInfo && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 md:p-4 bg-black/95 backdrop-blur-md overflow-hidden font-lxgw-reg">
           <div className="bg-[#fef9e7] p-5 md:p-10 max-w-2xl w-full border-4 md:border-8 border-[#5d2e0a] parchment-shadow rounded-[2.5rem] md:rounded-[3rem] flex flex-col max-h-[95vh] overflow-hidden">
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1 md:pr-2 space-y-6 md:space-y-8 pb-16">
+            <div className="overflow-y-auto custom-scrollbar flex-1 pr-1 md:pr-2 space-y-6 md:space-y-8">
               <div className={`flex justify-center pt-4 ${alertInfo.type === 'success' ? 'text-green-800' : 'text-amber-800'}`}>
                 {alertInfo.type === 'success' ? <CheckCircle size={56} className="md:w-20 md:h-20" /> : <AlertCircle size={56} className="md:w-20 md:h-20" />}
               </div>
@@ -572,19 +575,17 @@ const App = () => {
               <p className="text-lg md:text-2xl font-lxgw-reg font-bold text-center text-gray-800 leading-relaxed px-2">{alertInfo.message}</p>
               
               {alertInfo.aiFeedback && (
-                <div className="bg-white/70 border-2 border-amber-200 p-6 md:p-10 rounded-2xl md:rounded-3xl relative shadow-inner min-h-[180px] overflow-visible">
+                <div className="bg-white/70 border-2 border-amber-200 p-6 md:p-8 rounded-2xl md:rounded-3xl relative shadow-inner mb-6 min-h-[140px]">
                   <Sparkles className="absolute -top-3 -left-3 text-amber-500 fill-amber-500" size={28} />
-                  <h4 className="text-amber-800 font-lxgw-bold text-lg md:text-2xl mb-5 flex items-center gap-2 tracking-widest"><ScrollText size={22}/> 航行日誌：靈感迴聲</h4>
-                  <div className="w-full">
-                    <p className="text-xl md:text-3xl text-gray-700 font-lxgw-reg leading-relaxed md:leading-loose whitespace-pre-line pr-10 pb-16 break-words">
-                      「{alertInfo.aiFeedback}」
-                    </p>
-                  </div>
+                  <h4 className="text-amber-800 font-lxgw-bold text-lg md:text-2xl mb-4 flex items-center gap-2 tracking-widest"><ScrollText size={22}/> 航行日誌：靈感迴聲</h4>
+                  <p className="text-xl md:text-2xl text-gray-700 font-lxgw-reg leading-relaxed md:leading-loose whitespace-pre-wrap break-words">
+                    「{alertInfo.aiFeedback}」
+                  </p>
                 </div>
               )}
             </div>
 
-            <div className="pt-2 md:pt-4">
+            <div className="pt-4 pb-4">
               <button onClick={() => setAlertInfo(null)} className="w-full py-4 md:py-6 bg-[#5d2e0a] text-white font-lxgw-bold text-lg md:text-2xl rounded-2xl shadow-2xl tracking-widest hover:bg-black active:scale-[0.98] transition-all shrink-0">
                 繼續航程
               </button>
